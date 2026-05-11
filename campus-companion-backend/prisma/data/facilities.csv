@@ -1,0 +1,6 @@
+facilityKey,name,description,capacity,location,color,icon,rules
+football,Football Ground,Full-size grass football pitch for recreational and competitive play,22,South Campus,green,football,"Book 24hrs in advance|Max 2hrs per booking|Clean up after use|No booking during exam week"
+hall,Conventional Hall,Main auditorium for events seminars and college functions,300,Main Building,purple,business,"Request approval from Dean|Return keys after use|No food or drinks inside|Setup and cleanup are your responsibility"
+lab1,Lab 1,Computer lab with 40 workstations running Windows and Linux,40,Block A - Ground Floor,blue,desktop,"Lab coat required|No food or drinks|Log off after use|Report any hardware issues immediately"
+lab2,Lab 2,Computer lab with 40 workstations for programming and multimedia,40,Block A - First Floor,amber,desktop,"Lab coat required|No food or drinks|Log off after use|No unauthorized software installation"
+lab3,Lab 3,Hardware and networking lab with Cisco and Juniper equipment,30,Block B - Ground Floor,teal,hardware-chip,"Handle equipment carefully|Report damage immediately|No unauthorized installations|Return all cables and tools after use"

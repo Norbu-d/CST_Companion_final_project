@@ -1,0 +1,129 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  STUDENT
+  LECTURER
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum Department {
+  SOFTWARE_ENGINEERING
+  INFORMATION_TECHNOLOGY
+  ELECTRICAL_ENGINEERING
+  CIVIL_ENGINEERING
+  MECHANICAL_ENGINEERING
+  ELECTRONICS_ENGINEERING
+  INSTRUMENTATION_ENGINEERING
+  ARCHITECTURE
+  WATER_RESOURCE_ENGINEERING
+  GEOLOGY
+}
+
+enum Designation {
+  HEAD_OF_DEPARTMENT
+  SENIOR_LECTURER
+  LECTURER
+  LAB_TECHNICIAN
+  ADMIN_STAFF
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id          Int          @id @default(autoincrement())
+  studentId   String       @unique   // student number for students, employeeId for lecturers
+  name        String
+  email       String       @unique
+  password    String
+  role        Role         @default(STUDENT)
+  department  Department?
+  contact     String?
+
+  // Student-specific
+  intakeYear  Int?         // year enrolled e.g. 2022 — current year calculated from this
+  semester    Int?         // current semester (1 or 2)
+  programme   String?      // specific programme within department if applicable
+  isRepeating Boolean      @default(false) // true if student is repeating a year
+
+  // Lecturer-specific
+  designation Designation? // role within department e.g. HEAD_OF_DEPARTMENT
+  officeHours String?      // e.g. "Mon–Fri 9:00–12:00"
+
+  // Notifications
+  pushToken   String?      // Expo push notification token, saved on login
+
+  createdAt   DateTime     @default(now())
+
+  bookings       Booking[]
+  lecturerLeaves LecturerLeave[]
+}
+
+model Schedule {
+  id      Int    @id @default(autoincrement())
+  day     String
+  time    String
+  subject String
+  room    String
+  type    String
+}
+
+model Notice {
+  id       Int      @id @default(autoincrement())
+  title    String
+  body     String
+  category String
+  pinned   Boolean  @default(false)
+  icon     String   @default("megaphone")
+  date     DateTime @default(now())
+}
+
+model Facility {
+  id          Int       @id @default(autoincrement())
+  facilityKey String    @unique
+  name        String
+  description String
+  capacity    Int
+  location    String
+  color       String
+  icon        String
+  rules       String[]
+  bookings    Booking[]
+}
+
+model Booking {
+  id         Int           @id @default(autoincrement())
+  userId     Int
+  facilityId Int
+  date       String
+  slots      Int[]
+  purpose    String
+  status     BookingStatus @default(PENDING)
+  createdAt  DateTime      @default(now())
+  facility   Facility      @relation(fields: [facilityId], references: [id])
+  user       User          @relation(fields: [userId], references: [id])
+}
+
+model LecturerLeave {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  startDate DateTime
+  endDate   DateTime
+  reason    String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}

@@ -1,0 +1,101 @@
+studentId,name,email,contact,department,intakeYear,semester
+02210101,Tenzin Dorji,tenzin.dorji@cst.edu.bt,+975-17100101,Software Engineering,2021,1
+02210102,Pema Wangchuk,pema.wangchuk@cst.edu.bt,+975-17100102,Software Engineering,2021,1
+02220103,Karma Yangzom,karma.yangzom@cst.edu.bt,+975-17100103,Software Engineering,2022,2
+02220104,Sonam Choden,sonam.choden@cst.edu.bt,+975-17100104,Software Engineering,2022,1
+02230105,Ugyen Tshering,ugyen.tshering@cst.edu.bt,+975-17100105,Software Engineering,2023,2
+02230106,Dawa Lhamo,dawa.lhamo@cst.edu.bt,+975-17100106,Software Engineering,2023,1
+02240107,Rinchen Dorji,rinchen.dorji@cst.edu.bt,+975-17100107,Software Engineering,2024,2
+02240108,Tshering Choden,tshering.choden@cst.edu.bt,+975-17100108,Software Engineering,2024,1
+02240109,Phuntsho Wangdi,phuntsho.wangdi@cst.edu.bt,+975-17100109,Software Engineering,2024,2
+02240110,Dechen Pemo,dechen.pemo@cst.edu.bt,+975-17100110,Software Engineering,2024,1
+02210201,Norbu Tshering,norbu.tshering@cst.edu.bt,+975-17100201,Information Technology,2021,1
+02210202,Kinley Wangmo,kinley.wangmo@cst.edu.bt,+975-17100202,Information Technology,2021,2
+02220203,Jigme Dorji,jigme.dorji@cst.edu.bt,+975-17100203,Information Technology,2022,1
+02220204,Sangay Choden,sangay.choden@cst.edu.bt,+975-17100204,Information Technology,2022,2
+02230205,Tenzin Wangchuk,tenzin.wangchuk@cst.edu.bt,+975-17100205,Information Technology,2023,1
+02230206,Dorji Wangmo,dorji.wangmo@cst.edu.bt,+975-17100206,Information Technology,2023,2
+02240207,Pema Dorji,pema.dorji@cst.edu.bt,+975-17100207,Information Technology,2024,1
+02240208,Sonam Tobgay,sonam.tobgay@cst.edu.bt,+975-17100208,Information Technology,2024,2
+02240209,Karma Tshering,karma.tshering@cst.edu.bt,+975-17100209,Information Technology,2024,1
+02240210,Deki Yangzom,deki.yangzom@cst.edu.bt,+975-17100210,Information Technology,2024,2
+02210301,Namgay Tshering,namgay.tshering@cst.edu.bt,+975-17100301,Electrical Engineering,2021,2
+02210302,Chimi Lhamo,chimi.lhamo@cst.edu.bt,+975-17100302,Electrical Engineering,2021,1
+02220303,Tashi Dorji,tashi.dorji@cst.edu.bt,+975-17100303,Electrical Engineering,2022,2
+02220304,Yeshey Pelden,yeshey.pelden@cst.edu.bt,+975-17100304,Electrical Engineering,2022,1
+02230305,Kelzang Wangmo,kelzang.wangmo@cst.edu.bt,+975-17100305,Electrical Engineering,2023,2
+02230306,Ugyen Dorji,ugyen.dorji@cst.edu.bt,+975-17100306,Electrical Engineering,2023,1
+02240307,Pema Seldon,pema.seldon@cst.edu.bt,+975-17100307,Electrical Engineering,2024,2
+02240308,Tshering Wangdi,tshering.wangdi@cst.edu.bt,+975-17100308,Electrical Engineering,2024,1
+02240309,Dorji Phuntsho,dorji.phuntsho@cst.edu.bt,+975-17100309,Electrical Engineering,2024,2
+02240310,Rinchen Wangmo,rinchen.wangmo@cst.edu.bt,+975-17100310,Electrical Engineering,2024,1
+02210401,Sonam Wangchuk,sonam.wangchuk@cst.edu.bt,+975-17100401,Civil Engineering,2021,1
+02210402,Pema Tshering,pema.tshering@cst.edu.bt,+975-17100402,Civil Engineering,2021,2
+02220403,Karma Dorji,karma.dorji@cst.edu.bt,+975-17100403,Civil Engineering,2022,1
+02220404,Tenzin Lhamo,tenzin.lhamo@cst.edu.bt,+975-17100404,Civil Engineering,2022,2
+02230405,Namgay Wangdi,namgay.wangdi@cst.edu.bt,+975-17100405,Civil Engineering,2023,1
+02230406,Chimi Dorji,chimi.dorji@cst.edu.bt,+975-17100406,Civil Engineering,2023,2
+02240407,Dawa Tshering,dawa.tshering@cst.edu.bt,+975-17100407,Civil Engineering,2024,1
+02240408,Yangchen Wangmo,yangchen.wangmo@cst.edu.bt,+975-17100408,Civil Engineering,2024,2
+02240409,Jigme Tshering,jigme.tshering@cst.edu.bt,+975-17100409,Civil Engineering,2024,1
+02240410,Sangay Dorji,sangay.dorji@cst.edu.bt,+975-17100410,Civil Engineering,2024,2
+02210501,Tashi Wangchuk,tashi.wangchuk@cst.edu.bt,+975-17100501,Mechanical Engineering,2021,2
+02210502,Deki Choden,deki.choden@cst.edu.bt,+975-17100502,Mechanical Engineering,2021,1
+02220503,Phuntsho Dorji,phuntsho.dorji@cst.edu.bt,+975-17100503,Mechanical Engineering,2022,2
+02220504,Norbu Wangmo,norbu.wangmo@cst.edu.bt,+975-17100504,Mechanical Engineering,2022,1
+02230505,Kinley Tshering,kinley.tshering@cst.edu.bt,+975-17100505,Mechanical Engineering,2023,2
+02230506,Pema Wangdi,pema.wangdi@cst.edu.bt,+975-17100506,Mechanical Engineering,2023,1
+02240507,Ugyen Choden,ugyen.choden@cst.edu.bt,+975-17100507,Mechanical Engineering,2024,2
+02240508,Tshering Dorji,tshering.dorji@cst.edu.bt,+975-17100508,Mechanical Engineering,2024,1
+02240509,Karma Wangdi,karma.wangdi@cst.edu.bt,+975-17100509,Mechanical Engineering,2024,2
+02240510,Rinchen Tshering,rinchen.tshering@cst.edu.bt,+975-17100510,Mechanical Engineering,2024,1
+02210601,Sonam Lhamo,sonam.lhamo@cst.edu.bt,+975-17100601,Electronics Engineering,2021,1
+02210602,Tenzin Wangdi,tenzin.wangdi@cst.edu.bt,+975-17100602,Electronics Engineering,2021,2
+02220603,Jigme Wangmo,jigme.wangmo@cst.edu.bt,+975-17100603,Electronics Engineering,2022,1
+02220604,Dawa Dorji,dawa.dorji@cst.edu.bt,+975-17100604,Electronics Engineering,2022,2
+02230605,Yangchen Tshering,yangchen.tshering@cst.edu.bt,+975-17100605,Electronics Engineering,2023,1
+02230606,Choden Wangchuk,choden.wangchuk@cst.edu.bt,+975-17100606,Electronics Engineering,2023,2
+02240607,Pema Namgay,pema.namgay@cst.edu.bt,+975-17100607,Electronics Engineering,2024,1
+02240608,Tashi Lhamo,tashi.lhamo@cst.edu.bt,+975-17100608,Electronics Engineering,2024,2
+02240609,Karma Choden,karma.choden@cst.edu.bt,+975-17100609,Electronics Engineering,2024,1
+02240610,Dorji Tshering,dorji.tshering@cst.edu.bt,+975-17100610,Electronics Engineering,2024,2
+02210701,Namgay Dorji,namgay.dorji@cst.edu.bt,+975-17100701,Instrumentation Engineering,2021,2
+02210702,Kinley Choden,kinley.choden@cst.edu.bt,+975-17100702,Instrumentation Engineering,2021,1
+02220703,Sonam Yangzom,sonam.yangzom@cst.edu.bt,+975-17100703,Instrumentation Engineering,2022,2
+02220704,Rinchen Wangchuk,rinchen.wangchuk@cst.edu.bt,+975-17100704,Instrumentation Engineering,2022,1
+02230705,Tshering Lhamo,tshering.lhamo@cst.edu.bt,+975-17100705,Instrumentation Engineering,2023,2
+02230706,Ugyen Namgay,ugyen.namgay@cst.edu.bt,+975-17100706,Instrumentation Engineering,2023,1
+02240707,Pema Wangchuk,pema.wangchuk.s@cst.edu.bt,+975-17100707,Instrumentation Engineering,2024,2
+02240708,Dawa Wangmo,dawa.wangmo@cst.edu.bt,+975-17100708,Instrumentation Engineering,2024,1
+02240709,Tenzin Choden,tenzin.choden@cst.edu.bt,+975-17100709,Instrumentation Engineering,2024,2
+02240710,Jigme Namgay,jigme.namgay@cst.edu.bt,+975-17100710,Instrumentation Engineering,2024,1
+02210801,Sangay Tshering,sangay.tshering@cst.edu.bt,+975-17100801,Architecture,2021,1
+02210802,Karma Pem,karma.pem@cst.edu.bt,+975-17100802,Architecture,2021,2
+02220803,Tashi Wangmo,tashi.wangmo@cst.edu.bt,+975-17100803,Architecture,2022,1
+02220804,Phuntsho Wangchuk,phuntsho.wangchuk@cst.edu.bt,+975-17100804,Architecture,2022,2
+02230805,Norbu Dorji,norbu.dorji@cst.edu.bt,+975-17100805,Architecture,2023,1
+02230806,Chimi Tshering,chimi.tshering@cst.edu.bt,+975-17100806,Architecture,2023,2
+02240807,Deki Wangdi,deki.wangdi@cst.edu.bt,+975-17100807,Architecture,2024,1
+02240808,Yangchen Namgay,yangchen.namgay@cst.edu.bt,+975-17100808,Architecture,2024,2
+02240809,Sonam Pem,sonam.pem@cst.edu.bt,+975-17100809,Architecture,2024,1
+02240810,Rinchen Namgay,rinchen.namgay@cst.edu.bt,+975-17100810,Architecture,2024,2
+02210901,Tenzin Pem,tenzin.pem@cst.edu.bt,+975-17100901,Water Resource Engineering,2021,2
+02210902,Dorji Wangchuk,dorji.wangchuk@cst.edu.bt,+975-17100902,Water Resource Engineering,2021,1
+02220903,Pema Seldon,pema.seldon.s@cst.edu.bt,+975-17100903,Water Resource Engineering,2022,2
+02220904,Karma Namgay,karma.namgay@cst.edu.bt,+975-17100904,Water Resource Engineering,2022,1
+02230905,Tshering Wangchuk,tshering.wangchuk@cst.edu.bt,+975-17100905,Water Resource Engineering,2023,2
+02230906,Ugyen Lhamo,ugyen.lhamo@cst.edu.bt,+975-17100906,Water Resource Engineering,2023,1
+02241007,Sonam Tshering,sonam.tshering.s@cst.edu.bt,+975-17101007,Water Resource Engineering,2024,2
+02241008,Kinley Namgay,kinley.namgay@cst.edu.bt,+975-17101008,Water Resource Engineering,2024,1
+02241009,Dawa Wangchuk,dawa.wangchuk@cst.edu.bt,+975-17101009,Water Resource Engineering,2024,2
+02241010,Namgay Choden,namgay.choden@cst.edu.bt,+975-17101010,Water Resource Engineering,2024,1
+02211001,Phuntsho Namgay,phuntsho.namgay@cst.edu.bt,+975-17101101,Geology,2021,1
+02211002,Chimi Wangdi,chimi.wangdi@cst.edu.bt,+975-17101102,Geology,2021,2
+02221003,Tashi Choden,tashi.choden@cst.edu.bt,+975-17101103,Geology,2022,1
+02221004,Sangay Wangchuk,sangay.wangchuk@cst.edu.bt,+975-17101104,Geology,2022,2
+02231005,Deki Tshering,deki.tshering@cst.edu.bt,+975-17101105,Geology,2023,1
+02231006,Rinchen Lhamo,rinchen.lhamo@cst.edu.bt,+975-17101106,Geology,2023,2
+02241007,Tenzin Tobgay,tenzin.tobgay@cst.edu.bt,+975-17101107,Geology,2024,1
+02241008,Pema Namgay,pema.namgay.s@cst.edu.bt,+975-17101108,Geology,2024,2
+02241009,Karma Tobgay,karma.tobgay@cst.edu.bt,+975-17101109,Geology,2024,1
+02241010,Dorji Lhamo,dorji.lhamo@cst.edu.bt,+975-17101110,Geology,2024,2

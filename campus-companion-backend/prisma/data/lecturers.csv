@@ -1,0 +1,51 @@
+employeeId,name,email,contact,department,designation,officeHours
+L001,Dr. Karma Wangchuk,karma.wangchuk@cst.edu.bt,+975-5-336401,Software Engineering,HEAD_OF_DEPARTMENT,Mon–Fri 9:00–12:00
+L002,Mr. Sonam Tshering,sonam.tshering@cst.edu.bt,+975-5-336402,Software Engineering,SENIOR_LECTURER,Mon–Thu 14:00–17:00
+L003,Ms. Pema Lhamo,pema.lhamo@cst.edu.bt,+975-5-336403,Software Engineering,LECTURER,Mon–Fri 10:00–12:00
+L004,Mr. Tenzin Dorji,tenzin.dorji.l@cst.edu.bt,+975-5-336404,Software Engineering,LECTURER,Tue–Fri 13:00–15:00
+L005,Ms. Dechen Wangmo,dechen.wangmo@cst.edu.bt,+975-5-336405,Software Engineering,LECTURER,Mon–Wed 9:00–11:00
+L006,Dr. Ugyen Tshering,ugyen.tshering.l@cst.edu.bt,+975-5-336406,Information Technology,HEAD_OF_DEPARTMENT,Mon–Fri 9:00–11:00
+L007,Mr. Kinley Dorji,kinley.dorji@cst.edu.bt,+975-5-336407,Information Technology,SENIOR_LECTURER,Mon–Thu 14:00–16:00
+L008,Ms. Tshering Pem,tshering.pem.l@cst.edu.bt,+975-5-336408,Information Technology,LECTURER,Tue–Fri 10:00–12:00
+L009,Mr. Namgay Wangchuk,namgay.wangchuk@cst.edu.bt,+975-5-336409,Information Technology,LECTURER,Mon–Wed 13:00–15:00
+L010,Ms. Chimi Dorji,chimi.dorji.l@cst.edu.bt,+975-5-336410,Information Technology,LECTURER,Mon–Fri 9:00–11:00
+L011,Dr. Rinchen Tshering,rinchen.tshering@cst.edu.bt,+975-5-336411,Electrical Engineering,HEAD_OF_DEPARTMENT,Mon–Fri 9:00–12:00
+L012,Mr. Dorji Phuntsho,dorji.phuntsho.l@cst.edu.bt,+975-5-336412,Electrical Engineering,SENIOR_LECTURER,Mon–Thu 14:00–17:00
+L013,Ms. Yangchen Lhamo,yangchen.lhamo.l@cst.edu.bt,+975-5-336413,Electrical Engineering,LECTURER,Tue–Fri 10:00–12:00
+L014,Mr. Pema Wangdi,pema.wangdi@cst.edu.bt,+975-5-336414,Electrical Engineering,LECTURER,Mon–Wed 13:00–15:00
+L015,Ms. Kelzang Choden,kelzang.choden@cst.edu.bt,+975-5-336415,Electrical Engineering,LECTURER,Mon–Fri 9:00–11:00
+L016,Dr. Tshering Namgay,tshering.namgay.l@cst.edu.bt,+975-5-336416,Civil Engineering,HEAD_OF_DEPARTMENT,Mon–Fri 9:00–12:00
+L017,Mr. Jigme Wangchuk,jigme.wangchuk@cst.edu.bt,+975-5-336417,Civil Engineering,SENIOR_LECTURER,Mon–Thu 14:00–17:00
+L018,Ms. Deki Yangzom,deki.yangzom@cst.edu.bt,+975-5-336418,Civil Engineering,LECTURER,Tue–Fri 10:00–12:00
+L019,Mr. Norbu Tshering,norbu.tshering.l@cst.edu.bt,+975-5-336419,Civil Engineering,LECTURER,Mon–Wed 13:00–15:00
+L020,Ms. Sangay Wangmo,sangay.wangmo@cst.edu.bt,+975-5-336420,Civil Engineering,LECTURER,Mon–Fri 9:00–11:00
+L021,Dr. Phuntsho Dorji,phuntsho.dorji.l@cst.edu.bt,+975-5-336421,Mechanical Engineering,HEAD_OF_DEPARTMENT,Mon–Fri 9:00–12:00
+L022,Mr. Tashi Wangchuk,tashi.wangchuk.l@cst.edu.bt,+975-5-336422,Mechanical Engineering,SENIOR_LECTURER,Mon–Thu 14:00–17:00
+L023,Ms. Pema Choden,pema.choden.l@cst.edu.bt,+975-5-336423,Mechanical Engineering,LECTURER,Tue–Fri 10:00–12:00
+L024,Mr. Sonam Wangdi,sonam.wangdi@cst.edu.bt,+975-5-336424,Mechanical Engineering,LECTURER,Mon–Wed 13:00–15:00
+L025,Ms. Karma Lhamo,karma.lhamo@cst.edu.bt,+975-5-336425,Mechanical Engineering,LECTURER,Mon–Fri 9:00–11:00
+L026,Dr. Wangchuk Dorji,wangchuk.dorji@cst.edu.bt,+975-5-336426,Electronics Engineering,HEAD_OF_DEPARTMENT,Mon–Fri 9:00–12:00
+L027,Mr. Tenzin Wangmo,tenzin.wangmo.l@cst.edu.bt,+975-5-336427,Electronics Engineering,SENIOR_LECTURER,Mon–Thu 14:00–17:00
+L028,Ms. Dawa Pem,dawa.pem@cst.edu.bt,+975-5-336428,Electronics Engineering,LECTURER,Tue–Fri 10:00–12:00
+L029,Mr. Ugyen Wangdi,ugyen.wangdi@cst.edu.bt,+975-5-336429,Electronics Engineering,LECTURER,Mon–Wed 13:00–15:00
+L030,Ms. Choden Lhamo,choden.lhamo@cst.edu.bt,+975-5-336430,Electronics Engineering,LECTURER,Mon–Fri 9:00–11:00
+L031,Dr. Namgay Tshering,namgay.tshering.l@cst.edu.bt,+975-5-336431,Instrumentation Engineering,HEAD_OF_DEPARTMENT,Mon–Fri 9:00–12:00
+L032,Mr. Sonam Dorji,sonam.dorji.l@cst.edu.bt,+975-5-336432,Instrumentation Engineering,SENIOR_LECTURER,Mon–Thu 14:00–17:00
+L033,Ms. Kinley Wangmo,kinley.wangmo.l@cst.edu.bt,+975-5-336433,Instrumentation Engineering,LECTURER,Tue–Fri 10:00–12:00
+L034,Mr. Rinchen Dorji,rinchen.dorji.l@cst.edu.bt,+975-5-336434,Instrumentation Engineering,LECTURER,Mon–Wed 13:00–15:00
+L035,Ms. Pema Yangzom,pema.yangzom@cst.edu.bt,+975-5-336435,Instrumentation Engineering,LECTURER,Mon–Fri 9:00–11:00
+L036,Dr. Tashi Dorji,tashi.dorji.l@cst.edu.bt,+975-5-336436,Architecture,HEAD_OF_DEPARTMENT,Mon–Fri 9:00–12:00
+L037,Mr. Karma Tshering,karma.tshering.l@cst.edu.bt,+975-5-336437,Architecture,SENIOR_LECTURER,Mon–Thu 14:00–17:00
+L038,Ms. Deki Pem,deki.pem@cst.edu.bt,+975-5-336438,Architecture,LECTURER,Tue–Fri 10:00–12:00
+L039,Mr. Jigme Tshering,jigme.tshering.l@cst.edu.bt,+975-5-336439,Architecture,LECTURER,Mon–Wed 13:00–15:00
+L040,Ms. Yangchen Dorji,yangchen.dorji@cst.edu.bt,+975-5-336440,Architecture,LECTURER,Mon–Fri 9:00–11:00
+L041,Dr. Dorji Namgay,dorji.namgay@cst.edu.bt,+975-5-336441,Water Resource Engineering,HEAD_OF_DEPARTMENT,Mon–Fri 9:00–12:00
+L042,Mr. Tshering Wangchuk,tshering.wangchuk.l@cst.edu.bt,+975-5-336442,Water Resource Engineering,SENIOR_LECTURER,Mon–Thu 14:00–17:00
+L043,Ms. Chimi Wangmo,chimi.wangmo.l@cst.edu.bt,+975-5-336443,Water Resource Engineering,LECTURER,Tue–Fri 10:00–12:00
+L044,Mr. Phuntsho Tshering,phuntsho.tshering@cst.edu.bt,+975-5-336444,Water Resource Engineering,LECTURER,Mon–Wed 13:00–15:00
+L045,Ms. Norbu Lhamo,norbu.lhamo@cst.edu.bt,+975-5-336445,Water Resource Engineering,LECTURER,Mon–Fri 9:00–11:00
+L046,Dr. Sangay Dorji,sangay.dorji.l@cst.edu.bt,+975-5-336446,Geology,HEAD_OF_DEPARTMENT,Mon–Fri 9:00–12:00
+L047,Mr. Pema Tshering,pema.tshering.l@cst.edu.bt,+975-5-336447,Geology,SENIOR_LECTURER,Mon–Thu 14:00–17:00
+L048,Ms. Karma Wangmo,karma.wangmo@cst.edu.bt,+975-5-336448,Geology,LECTURER,Tue–Fri 10:00–12:00
+L049,Mr. Tenzin Namgay,tenzin.namgay@cst.edu.bt,+975-5-336449,Geology,LECTURER,Mon–Wed 13:00–15:00
+L050,Ms. Dawa Choden,dawa.choden@cst.edu.bt,+975-5-336450,Geology,LECTURER,Mon–Fri 9:00–11:00
