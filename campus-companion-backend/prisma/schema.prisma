@@ -42,6 +42,30 @@ enum Designation {
   ADMIN_STAFF
 }
 
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TargetType {
+  EVERYONE
+  DEPARTMENT
+  YEAR_GROUP
+  ROLE_ONLY
+}
+
+enum TargetRole {
+  LECTURERS_ONLY
+  STUDENTS_ONLY
+}
+
+enum AttachmentType {
+  IMAGE
+  PDF
+  DOCUMENT
+}
+
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
@@ -71,25 +95,47 @@ model User {
 
   bookings       Booking[]
   lecturerLeaves LecturerLeave[]
+  sentNotices    Notice[]         @relation("SentBy")
+  approvedLeaves LecturerLeave[]  @relation("ApprovedBy")
+  schedules      Schedule[]       @relation("LecturerSchedule")
 }
 
 model Schedule {
-  id      Int    @id @default(autoincrement())
-  day     String
-  time    String
-  subject String
-  room    String
-  type    String
+  id           Int        @id @default(autoincrement())
+  department   Department                   // which department this class is for
+  year         Int                          // student year: 1, 2, 3, 4
+  semester     Int                          // 1 or 2
+  academicYear String                       // e.g. "2025-26"
+  day          String                       // "Monday", "Tuesday" etc
+  time         String                       // e.g. "08:00–09:50"
+  subject      String                       // subject name
+  room         String                       // room or lab identifier
+  type         String                       // "Lecture", "Lab", "Tutorial"
+  lecturerId   Int?                         // assigned lecturer — null means unassigned
+  lecturer     User?      @relation("LecturerSchedule", fields: [lecturerId], references: [id])
 }
 
 model Notice {
-  id       Int      @id @default(autoincrement())
-  title    String
-  body     String
-  category String
-  pinned   Boolean  @default(false)
-  icon     String   @default("megaphone")
-  date     DateTime @default(now())
+  id               Int            @id @default(autoincrement())
+  title            String
+  body             String
+  category         String
+  pinned           Boolean        @default(false)
+  icon             String         @default("megaphone")
+  date             DateTime       @default(now())
+  
+  // Targeting
+  targetType       TargetType     @default(EVERYONE)
+  targetDepartment Department?                      // set when targetType = DEPARTMENT or YEAR_GROUP
+  targetYear       Int?                             // set when targetType = YEAR_GROUP
+  targetRole       TargetRole?                      // set when targetType = ROLE_ONLY
+  
+  // Sender
+  sentById         Int?
+  sentBy           User?          @relation("SentBy", fields: [sentById], references: [id])
+  
+  // Attachments
+  attachments      Attachment[]
 }
 
 model Facility {
@@ -113,17 +159,33 @@ model Booking {
   slots      Int[]
   purpose    String
   status     BookingStatus @default(PENDING)
+  academicYear String?                            // NEW: e.g. "2025-26"
   createdAt  DateTime      @default(now())
   facility   Facility      @relation(fields: [facilityId], references: [id])
   user       User          @relation(fields: [userId], references: [id])
 }
 
 model LecturerLeave {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  startDate DateTime
-  endDate   DateTime
-  reason    String?
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+  id           Int           @id @default(autoincrement())
+  userId       Int
+  startDate    DateTime
+  endDate      DateTime
+  reason       String?
+  status       LeaveStatus   @default(PENDING)   // NEW: approval workflow
+  approvedById Int?                               // NEW: which admin approved/rejected
+  academicYear String?                            // NEW: e.g. "2025-26"
+  createdAt    DateTime      @default(now())
+  user         User          @relation(fields: [userId], references: [id])
+  approvedBy   User?         @relation("ApprovedBy", fields: [approvedById], references: [id])
+}
+
+model Attachment {
+  id        Int            @id @default(autoincrement())
+  noticeId  Int
+  fileUrl   String                  // Cloudinary URL
+  fileName  String                  // original file name e.g. "timetable_IT_Y3.pdf"
+  fileType  AttachmentType
+  fileSize  Int                     // in bytes
+  createdAt DateTime       @default(now())
+  notice    Notice         @relation(fields: [noticeId], references: [id], onDelete: Cascade)
 }

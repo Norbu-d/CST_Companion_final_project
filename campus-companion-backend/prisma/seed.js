@@ -34,13 +34,22 @@ async function main() {
   });
 
   // ─── Test Lecturer ────────────────────────────────────────────────────────
+  // Use a unique test lecturer ID to avoid conflicts with imported lecturers
   await prisma.user.upsert({
-    where: { email: 'lecturer@cst.edu.bt' },
-    update: {},
-    create: {
-      studentId:   'L001',
+    where: { email: 'testlecturer@cst.edu.bt' },
+    update: {
       name:        'Sonam Tshering',
-      email:       'lecturer@cst.edu.bt',
+      password:    await bcrypt.hash('lecturer123', 10),
+      role:        'LECTURER',
+      department:  'SOFTWARE_ENGINEERING',
+      contact:     '+975-5-336402',
+      designation: 'SENIOR_LECTURER',
+      officeHours: 'Mon–Thu 14:00–17:00',
+    },
+    create: {
+      studentId:   'L999',
+      name:        'Sonam Tshering',
+      email:       'testlecturer@cst.edu.bt',
       password:    await bcrypt.hash('lecturer123', 10),
       role:        'LECTURER',
       department:  'SOFTWARE_ENGINEERING',
@@ -51,16 +60,16 @@ async function main() {
   });
 
   // ─── Schedule ─────────────────────────────────────────────────────────────
-  // Placeholder entries — will be fully rebuilt in Phase 2 with
-  // department, year, semester and lecturerId fields.
+  // Phase 1 complete — schedule entries now include department, year, semester, academicYear
+  // These are sample entries for Year 3 Software Engineering Semester 2, Academic Year 2025-26
   const schedule = [
-    { day: 'Monday',    time: '08:00–09:50', subject: 'Cross Platform Development', room: 'Lab 2', type: 'Lab'      },
-    { day: 'Monday',    time: '10:00–10:50', subject: 'Software Engineering',        room: 'LT-1',  type: 'Lecture'  },
-    { day: 'Tuesday',   time: '08:00–08:50', subject: 'Database Systems',            room: 'LT-2',  type: 'Lecture'  },
-    { day: 'Tuesday',   time: '14:00–15:50', subject: 'Database Systems',            room: 'Lab 1', type: 'Lab'      },
-    { day: 'Wednesday', time: '10:00–10:50', subject: 'Cross Platform Development',  room: 'LT-1',  type: 'Lecture'  },
-    { day: 'Thursday',  time: '08:00–08:50', subject: 'Software Engineering',        room: 'LT-3',  type: 'Tutorial' },
-    { day: 'Friday',    time: '14:00–15:50', subject: 'Cross Platform Development',  room: 'Lab 2', type: 'Lab'      },
+    { department: 'SOFTWARE_ENGINEERING', year: 3, semester: 2, academicYear: '2025-26', day: 'Monday',    time: '08:00–09:50', subject: 'Cross Platform Development', room: 'Lab 2', type: 'Lab',      lecturerId: null },
+    { department: 'SOFTWARE_ENGINEERING', year: 3, semester: 2, academicYear: '2025-26', day: 'Monday',    time: '10:00–10:50', subject: 'Software Engineering',        room: 'LT-1',  type: 'Lecture',  lecturerId: null },
+    { department: 'SOFTWARE_ENGINEERING', year: 3, semester: 2, academicYear: '2025-26', day: 'Tuesday',   time: '08:00–08:50', subject: 'Database Systems',            room: 'LT-2',  type: 'Lecture',  lecturerId: null },
+    { department: 'SOFTWARE_ENGINEERING', year: 3, semester: 2, academicYear: '2025-26', day: 'Tuesday',   time: '14:00–15:50', subject: 'Database Systems',            room: 'Lab 1', type: 'Lab',      lecturerId: null },
+    { department: 'SOFTWARE_ENGINEERING', year: 3, semester: 2, academicYear: '2025-26', day: 'Wednesday', time: '10:00–10:50', subject: 'Cross Platform Development',  room: 'LT-1',  type: 'Lecture',  lecturerId: null },
+    { department: 'SOFTWARE_ENGINEERING', year: 3, semester: 2, academicYear: '2025-26', day: 'Thursday',  time: '08:00–08:50', subject: 'Software Engineering',        room: 'LT-3',  type: 'Tutorial', lecturerId: null },
+    { department: 'SOFTWARE_ENGINEERING', year: 3, semester: 2, academicYear: '2025-26', day: 'Friday',    time: '14:00–15:50', subject: 'Cross Platform Development',  room: 'Lab 2', type: 'Lab',      lecturerId: null },
   ];
   await prisma.schedule.createMany({ data: schedule, skipDuplicates: true });
 

@@ -2,16 +2,17 @@ import React from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, CalendarCheck, Megaphone,
-  CalendarOff, Building2, LogOut
+  CalendarOff, Building2, LogOut, CalendarDays
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
-  { to: '/bookings', icon: CalendarCheck, label: 'Bookings' },
-  { to: '/notices', icon: Megaphone, label: 'Notices' },
-  { to: '/leave', icon: CalendarOff, label: 'Lecturer Leave' },
-  { to: '/facilities', icon: Building2, label: 'Facilities' },
+  { to: '/',          icon: LayoutDashboard, label: 'Dashboard',      end: true },
+  { to: '/bookings',  icon: CalendarCheck,   label: 'Bookings' },
+  { to: '/schedule',  icon: CalendarDays,    label: 'Schedule' },
+  { to: '/notices',   icon: Megaphone,       label: 'Notices' },
+  { to: '/leave',     icon: CalendarOff,     label: 'Lecturer Leave' },
+  { to: '/facilities',icon: Building2,       label: 'Facilities' },
 ]
 
 export default function Layout() {

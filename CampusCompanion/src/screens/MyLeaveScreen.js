@@ -26,11 +26,17 @@ function formatDate(dateStr) {
 
 function isActive(leave) {
   const today = new Date();
-  return new Date(leave.startDate) <= today && new Date(leave.endDate) >= today;
+  return leave.status === 'APPROVED' && new Date(leave.startDate) <= today && new Date(leave.endDate) >= today;
 }
 
 function isUpcoming(leave) {
-  return new Date(leave.startDate) > new Date();
+  return leave.status === 'APPROVED' && new Date(leave.startDate) > new Date();
+}
+
+function getStatusBadge(status) {
+  if (status === 'APPROVED') return { color: '#10b981', bg: '#d1fae5', text: 'Approved' };
+  if (status === 'REJECTED') return { color: '#ef4444', bg: '#fee2e2', text: 'Rejected' };
+  return { color: '#f59e0b', bg: '#fef3c7', text: 'Awaiting Approval' };
 }
 
 function DatePicker({ label, value, onChange }) {
@@ -85,6 +91,7 @@ export default function MyLeaveScreen() {
   const today = new Date().toISOString().split('T')[0];
 
   const [leaves, setLeaves]         = useState([]);
+  const [collegeLeaves, setCollegeLeaves] = useState([]);
   const [loading, setLoading]       = useState(true);
   const [showForm, setShowForm]     = useState(false);
   const [startDate, setStartDate]   = useState(today);
@@ -97,8 +104,16 @@ export default function MyLeaveScreen() {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const res = await get(`/lecturer/${user.id}/leave`);
+      // Get own leaves
+      const res = await get(`/lecturer/leave/${user.id}`);
       if (res.success) setLeaves(res.data);
+      
+      // Get all college leaves (for leave board) — filter out own leaves
+      const collegeRes = await get('/lecturer/leave/all');
+      if (collegeRes.success) {
+        const others = collegeRes.data.filter(l => l.userId !== user.id && l.status === 'APPROVED');
+        setCollegeLeaves(others);
+      }
     } catch (_) {}
     finally { setLoading(false); }
   }, [user?.id]);
@@ -153,10 +168,6 @@ export default function MyLeaveScreen() {
       ]
     );
   };
-
-  const activeLeaves   = leaves.filter(isActive);
-  const upcomingLeaves = leaves.filter(isUpcoming);
-  const pastLeaves     = leaves.filter(l => !isActive(l) && !isUpcoming(l));
 
   return (
     <View style={styles.root}>
@@ -239,15 +250,47 @@ export default function MyLeaveScreen() {
           </View>
         ) : (
           <>
-            {activeLeaves.length > 0 && (
-              <LeaveSection title="Currently On Leave" color="#d97706" leaves={activeLeaves} onDelete={handleDelete} deleting={deleting} />
+            {leaves.filter(l => l.status === 'APPROVED' || l.status === 'PENDING').length > 0 && (
+              <>
+                {leaves.filter(l => (l.status === 'APPROVED' || l.status === 'PENDING') && isActive(l)).length > 0 && (
+                  <LeaveSection 
+                    title="Currently On Leave" 
+                    leaves={leaves.filter(l => (l.status === 'APPROVED' || l.status === 'PENDING') && isActive(l))} 
+                    onDelete={handleDelete} 
+                    deleting={deleting}
+                    showStatus={true}
+                  />
+                )}
+                {leaves.filter(l => (l.status === 'APPROVED' || l.status === 'PENDING') && isUpcoming(l)).length > 0 && (
+                  <LeaveSection 
+                    title="Upcoming" 
+                    leaves={leaves.filter(l => (l.status === 'APPROVED' || l.status === 'PENDING') && isUpcoming(l))} 
+                    onDelete={handleDelete} 
+                    deleting={deleting}
+                    showStatus={true}
+                  />
+                )}
+                {leaves.filter(l => l.status === 'PENDING').length > 0 && (
+                  <LeaveSection 
+                    title="Awaiting Approval" 
+                    leaves={leaves.filter(l => l.status === 'PENDING')} 
+                    onDelete={handleDelete} 
+                    deleting={deleting}
+                    showStatus={true}
+                  />
+                )}
+                {leaves.filter(l => l.status === 'REJECTED').length > 0 && (
+                  <LeaveSection 
+                    title="Rejected" 
+                    leaves={leaves.filter(l => l.status === 'REJECTED')} 
+                    onDelete={handleDelete} 
+                    deleting={deleting}
+                    showStatus={true}
+                  />
+                )}
+              </>
             )}
-            {upcomingLeaves.length > 0 && (
-              <LeaveSection title="Upcoming" color={colors.primary} leaves={upcomingLeaves} onDelete={handleDelete} deleting={deleting} />
-            )}
-            {pastLeaves.length > 0 && (
-              <LeaveSection title="Past" color="#9CA3AF" leaves={pastLeaves} onDelete={null} deleting={null} />
-            )}
+            <CollegeLeaveBoard leaves={collegeLeaves} />
           </>
         )}
 
@@ -257,41 +300,96 @@ export default function MyLeaveScreen() {
   );
 }
 
-function LeaveSection({ title, color, leaves, onDelete, deleting }) {
+function LeaveSection({ title, leaves, onDelete, deleting, showStatus = false }) {
   return (
     <>
-      <Text style={[styles.sectionLabel, { color }]}>{title}</Text>
-      {leaves.map(leave => (
-        <View key={leave.id} style={styles.leaveCard}>
-          <View style={[styles.leaveAccent, { backgroundColor: color }]} />
-          <View style={styles.leaveBody}>
-            <View style={styles.leaveTop}>
-              <View style={styles.leaveDates}>
-                <Ionicons name="calendar-outline" size={13} color={color} />
-                <Text style={styles.leaveDateText}>
-                  {formatDate(leave.startDate)} – {formatDate(leave.endDate)}
-                </Text>
+      <Text style={[styles.sectionLabel, { color: colors.primary }]}>{title}</Text>
+      {leaves.map(leave => {
+        const statusInfo = getStatusBadge(leave.status);
+        const color = isActive(leave) ? '#d97706' : isUpcoming(leave) ? colors.primary : '#9CA3AF';
+        
+        return (
+          <View key={leave.id} style={styles.leaveCard}>
+            <View style={[styles.leaveAccent, { backgroundColor: color }]} />
+            <View style={styles.leaveBody}>
+              <View style={styles.leaveTop}>
+                <View style={styles.leaveDates}>
+                  <Ionicons name="calendar-outline" size={13} color={color} />
+                  <Text style={styles.leaveDateText}>
+                    {formatDate(leave.startDate)} – {formatDate(leave.endDate)}
+                  </Text>
+                </View>
+                {showStatus && (
+                  <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
+                    <Text style={[styles.statusBadgeText, { color: statusInfo.color }]}>
+                      {statusInfo.text}
+                    </Text>
+                  </View>
+                )}
+                {onDelete && (
+                  <TouchableOpacity
+                    onPress={() => onDelete(leave.id)}
+                    disabled={deleting === leave.id}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    {deleting === leave.id
+                      ? <ActivityIndicator size="small" color="#ef4444" />
+                      : <Ionicons name="trash-outline" size={15} color="#ef4444" />
+                    }
+                  </TouchableOpacity>
+                )}
               </View>
-              {onDelete && (
-                <TouchableOpacity
-                  onPress={() => onDelete(leave.id)}
-                  disabled={deleting === leave.id}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  {deleting === leave.id
-                    ? <ActivityIndicator size="small" color="#ef4444" />
-                    : <Ionicons name="trash-outline" size={15} color="#ef4444" />
-                  }
-                </TouchableOpacity>
+              {leave.reason && (
+                <Text style={styles.leaveReason}>{leave.reason}</Text>
               )}
             </View>
-            {leave.reason && (
-              <Text style={styles.leaveReason}>{leave.reason}</Text>
-            )}
+          </View>
+        );
+      })}
+    </>
+  );
+}
+
+function CollegeLeaveBoard({ leaves }) {
+  if (leaves.length === 0) return null;
+  
+  const today = new Date();
+  const onLeaveNow = leaves.filter(l => new Date(l.startDate) <= today && new Date(l.endDate) >= today);
+  
+  if (onLeaveNow.length === 0) return null;
+
+  return (
+    <View style={{ marginTop: spacing.xl }}>
+      <Text style={[styles.sectionLabel, { color: colors.primary }]}>📋 College Leave Board</Text>
+      <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: spacing.md, marginLeft: spacing.md }}>
+        Lecturers currently on leave
+      </Text>
+      {onLeaveNow.map(leave => (
+        <View key={leave.id} style={[styles.boardCard]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={styles.boardAvatar}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>
+                {leave.user?.name?.charAt(0) ?? '?'}
+              </Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#111827' }}>
+                {leave.user?.name}
+              </Text>
+              <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 1 }}>
+                {leave.user?.department?.replace(/_/g, ' ')}
+              </Text>
+              <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>
+                Until {formatDate(leave.endDate)}
+              </Text>
+            </View>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+            </View>
           </View>
         </View>
       ))}
-    </>
+    </View>
   );
 }
 
@@ -331,6 +429,12 @@ const styles = StyleSheet.create({
   leaveDates:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
   leaveDateText: { fontSize: 13, fontWeight: '700', color: '#111827' },
   leaveReason: { fontSize: 12, color: '#6B7280', marginTop: 4 },
+  
+  statusBadge:      { paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.full },
+  statusBadgeText:  { fontSize: 11, fontWeight: '600' },
+
+  boardCard:    { backgroundColor: '#fff', borderRadius: radius.lg, marginBottom: 12, padding: spacing.md, borderWidth: 1.5, borderColor: '#E5E7EB', ...Platform.select({ ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 1 } }, android: { elevation: 1 } }) },
+  boardAvatar:  { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
 
   center:     { paddingTop: 60, alignItems: 'center' },
   emptyState: { paddingTop: 60, alignItems: 'center', paddingHorizontal: spacing.lg },

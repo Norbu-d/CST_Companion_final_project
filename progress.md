@@ -728,7 +728,7 @@ prisma.user.findMany({ where: { role: 'LECTURER' }, select: { studentId: true, e
 |---|---|---|
 | Admin | admin@cst.edu.bt | admin123 |
 | Student (seed) | student@cst.edu.bt | student123 |
-| Lecturer (seed) | lecturer@cst.edu.bt | lecturer123 |
+| Lecturer (seed) | testlecturer@cst.edu.bt | lecturer123 |
 | Imported students | their email or studentId | their studentId (e.g. 02240101) |
 | Imported lecturers | their email or employeeId | their employeeId (e.g. L001) |
 
@@ -778,6 +778,7 @@ npx expo start
 - [x] `GET /contacts` now queries `User` WHERE `role = LECTURER`
 - [x] `seed.js` includes admin + student + lecturer seed accounts
 - [x] CORS updated to allow `localhost:5173` (admin dashboard) + `OPTIONS` method for preflight
+- [x] **PHASE 1 COMPLETE: Data Foundation** — Department enum, User fields (intakeYear, semester, programme, isRepeating, designation, officeHours, pushToken), LecturerLeave approval workflow (status, approvedById, academicYear), Notice targeting (targetType, targetDepartment, targetYear, sentById), Attachment model, Schedule rebuild (department, year, semester, academicYear, lecturerId), Booking.academicYear, migration applied, seed and import scripts updated
 
 ### Mobile App ✅
 - [x] All 9 screens built with full UI
@@ -815,27 +816,25 @@ npx expo start
 
 ## 17. What Is Remaining 🔲
 
-### Backend Enhancements (Optional / Stretch)
-- [ ] `GET /lecturer/leave/all` — single endpoint to fetch ALL lecturer leave (currently the dashboard fetches per-user)
-- [ ] `POST /schedule`, `PATCH /schedule/:id`, `DELETE /schedule/:id` (admin only)
-- [ ] Facility blackout model — block facilities for maintenance
-- [ ] Push notifications when booking approved/rejected
-- [ ] Refresh token mechanism
-- [ ] Deploy to Railway or Render (free PostgreSQL tier)
+### Phase 2 — Core Feature Updates (Next Priority)
+- [ ] Leave approval workflow — backend PATCH route + admin dashboard approve/reject buttons
+- [ ] Leave visibility for all lecturers — `GET /lecturer/leave/all` + mobile leave board section
+- [ ] Schedule system rebuild — backend routes + admin schedule management page + mobile schedule screen for both students and lecturers
+- [ ] Notice targeting — backend filters by user context on `GET /notices` + admin target selector on creation
 
-### Admin Dashboard Enhancements (Optional)
-- [ ] Add a lecturer management page (view/add/edit lecturers — replaces old contacts page)
-- [ ] Add a schedule management page
-- [ ] Export bookings to CSV
-- [ ] Date range filter on BookingsPage
-- [ ] Pagination for large booking tables
-- [ ] Toast notifications on approve/reject success
+### Phase 3 — New Communication Features
+- [ ] File attachments on notices — Cloudinary setup + upload endpoint + mobile attachment viewer
+- [ ] Push notifications — Expo setup + push token saving + all notification triggers
 
-### Mobile Polish (Optional)
-- [ ] Show student's name/year on HomeScreen from AuthContext
-- [ ] Handle JWT expiry gracefully (auto-logout with message)
-- [ ] Filter schedule by student's programme/year
-- [ ] Hook ScheduleScreen up to backend `GET /schedule`
+### Phase 4 — User Features
+- [ ] Profile screen — mobile app for students and lecturers
+- [ ] Lecturer management page — admin dashboard
+- [ ] Student management page with bulk year progression — admin dashboard
+- [ ] Department-aware home screen alerts
+
+### Phase 5 — Advanced Features
+- [ ] **Attendance tracking** — schema migration, backend routes, lecturer marking UI, student view, at-risk alerts
+- [ ] **Lost and Found** — schema migration, backend routes, mobile screen, admin management page
 
 ---
 

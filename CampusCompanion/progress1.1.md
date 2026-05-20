@@ -1,306 +1,528 @@
-# Campus Companion — Full Project Progress & Handoff
+# Campus Companion — Progress & Handoff
 
-> Use this file to resume work in a new Claude chat. Paste the entire contents and say:
-> **"Continue building my Campus Companion project. Here is the full context:"**
+> **To resume in a new chat:** Paste this file and `futureprogress.md` and say:
+> *"Continue building my Campus Companion project. Here is the full context."*
 
 ---
 
-## 1. Project Overview & Goal
+## 1. Project Overview
 
-**Project Name:** Campus Companion — Full Stack System (Mobile App + Backend API + Admin Dashboard)
-**Purpose:** A complete digital companion platform for students and administrators at CST (College of Science and Technology), Rinchending, Phuentsholing, Royal University of Bhutan.
-**Assignment:** SWE201 – Cross Platform Development | Programming Assignment 1 | Year 3, Semester 2
+**Course:** SWE201 – Cross Platform Development | PA1 | Year 3, Sem 2 | CST, RUB, Phuentsholing
 
-### The system is made up of three interconnected parts:
+A full-stack digital companion for students, lecturers, and admins at CST with three parts:
 
-**1. Campus Companion Mobile App (Expo / React Native)**
-The student-facing app. Students can log in, view contacts, check their class schedule, read notices, browse facilities, and book facilities like the football ground or computer labs. After booking, they can track the status of their requests.
-
-**2. Campus Companion Backend (Node.js / Hono REST API)**
-The central server that both the mobile app and admin dashboard talk to. It handles all authentication via JWT, stores and serves real data from a PostgreSQL database, enforces booking slot conflict checks, and exposes admin-only endpoints for managing the system. The mobile app ↔ backend connection is fully complete.
-
-**3. Campus Companion Admin Dashboard (Vite + React — TO BE BUILT)**
-A web-based internal tool for administrators at CST. Admins can log in and manage the entire system: approve or reject student booking requests, publish notices and send push notifications to students, create and edit the weekly class timetable, and temporarily block facility availability for maintenance or events.
-
-### How the three parts connect:
-- The **mobile app** calls the backend API to fetch data and submit actions (login, view schedule, book facility, etc.)
-- The **admin dashboard** calls the same backend API using admin-only endpoints to manage bookings, notices, schedule, and facilities
-- The **backend** is the single source of truth — it reads/writes to PostgreSQL and serves both clients
+| Part | Stack | Status |
+|---|---|---|
+| Mobile App | Expo SDK 55 / React Native | ✅ Core complete, Phase 2 screens updated |
+| Backend API | Node.js / Hono / PostgreSQL | ✅ Phase 1 + Phase 2 complete |
+| Admin Dashboard | Vite + React | ✅ Phase 1 + Phase 2 complete |
 
 ---
 
 ## 2. Tech Stack
 
-### Mobile App (Expo)
-| Tool / Library | Purpose |
-|---|---|
-| Expo / React Native | Cross-platform mobile framework |
-| React Navigation | Screen routing and navigation |
-| AsyncStorage | Storing JWT token locally on device |
-| fetch / axios | HTTP calls to the backend API |
-| expo-notifications | (Planned) Push notification support |
+### Mobile (Expo SDK 55)
+`expo` · `react-native` · `@react-navigation/native` · `@react-navigation/stack` · `@react-navigation/bottom-tabs` · `expo-linear-gradient` · `@expo/vector-icons` · `@react-native-async-storage/async-storage@2.2.0` · `react-native-safe-area-context`
 
-### Backend API (Node.js)
-| Tool / Library | Version | Purpose |
-|---|---|---|
-| Node.js | 20 LTS | Runtime |
-| Hono | ^4.x | Web framework — fast, modern, Web Standards API |
-| @hono/node-server | ^1.x | Adapter to run Hono on Node.js |
-| Prisma | ^5.x | ORM — schema, migrations, type-safe queries |
-| PostgreSQL | 15+ | Relational database |
-| jsonwebtoken | ^9.x | JWT creation and verification |
-| bcryptjs | ^2.x | Password hashing |
-| zod | ^3.x | Request body validation |
-| dotenv | ^16.x | Environment variable loading |
-| nodemon | ^3.x (dev) | Auto-restart during development |
+### Backend (Node.js)
+`hono@^4` · `@hono/node-server` · `prisma@^7` · `@prisma/adapter-pg` · `pg` · `jsonwebtoken` · `bcryptjs` · `zod` · `dotenv` · `nodemon`
 
-**Why Hono over Express:** Significantly faster (Web Standards API, no legacy baggage), built-in `cors` and `logger` middleware, first-class JS/TS support, smaller bundle size, and clean readable route definitions.
+> ⚠️ Prisma 7: `DATABASE_URL` lives in `prisma/prisma.config.js`, NOT `schema.prisma`. Must use `@prisma/adapter-pg`.
 
-### Admin Dashboard (Vite + React — chosen over Next.js)
-| Tool / Library | Purpose |
-|---|---|
-| Vite | Build tool and dev server — fast, zero config |
-| React | UI framework |
-| React Router v6 | Client-side routing |
-| Axios | HTTP calls to backend API |
-| TanStack Query | Server state management, caching, refetching |
-| Tailwind CSS | Utility-first styling |
-| shadcn/ui | Pre-built accessible UI components |
-
-**Why Vite over Next.js:** The admin dashboard is a pure internal SPA — it needs no SEO, no SSR, and no server-side rendering. Next.js adds complexity that isn't needed here. Vite is simpler, faster to start, and easy to deploy as static files.
+### Admin Dashboard (Vite + React)
+`vite@^6` · `react@^18` · `react-router-dom@^6.28` · `axios@^1.7` · `@tanstack/react-query@^5` · `lucide-react` · `date-fns@^4`
 
 ---
 
-## 3. Complete File Structure
+## 3. User Roles
 
-### Backend (`campus-companion-backend/`)
+| Role | Permissions |
+|---|---|
+| `STUDENT` | Login · contacts · notices · schedule (own dept+year) · book facilities · view own bookings · view own attendance |
+| `LECTURER` | Login · contacts · notices · manage own leave · view teaching schedule · view colleague leave board |
+| `ADMIN` | All of the above + approve/reject bookings · approve/reject leave · create/edit/delete notices · manage schedule · manage lecturers · manage students |
+
+---
+
+## 4. Database Schema (Current — Post Phase 1 Migration)
+
+```prisma
+// prisma/schema.prisma
+
+enum Role            { STUDENT LECTURER ADMIN }
+enum BookingStatus   { PENDING APPROVED REJECTED }
+enum LeaveStatus     { PENDING APPROVED REJECTED }
+enum Department {
+  ELECTRICAL_ENGINEERING
+  WATER_RESOURCE_ENGINEERING
+  CIVIL_ENGINEERING
+  SOFTWARE_ENGINEERING
+  INFORMATION_TECHNOLOGY
+  ARCHITECTURE
+  ELECTRONICS_ENGINEERING
+  INSTRUMENTATION_ENGINEERING
+  MECHANICAL_ENGINEERING
+  GEOLOGY
+}
+enum Designation {
+  HEAD_OF_DEPARTMENT
+  SENIOR_LECTURER
+  LECTURER
+  LAB_TECHNICIAN
+  ADMIN_STAFF
+}
+enum TargetType  { EVERYONE DEPARTMENT YEAR_GROUP ROLE_ONLY }
+enum TargetRole  { LECTURERS_ONLY STUDENTS_ONLY }
+enum AttachmentType { IMAGE PDF DOCUMENT }
+
+model User {
+  id             Int              @id @default(autoincrement())
+  studentId      String           @unique
+  name           String
+  email          String           @unique
+  password       String
+  role           Role             @default(STUDENT)
+  department     Department?
+  contact        String?
+  // Student fields
+  intakeYear     Int?
+  semester       Int?
+  programme      String?
+  isRepeating    Boolean          @default(false)
+  // Lecturer fields
+  designation    Designation?
+  officeHours    String?
+  // Notifications
+  pushToken      String?
+  createdAt      DateTime         @default(now())
+  bookings       Booking[]
+  lecturerLeaves LecturerLeave[]
+  sentNotices    Notice[]         @relation("SentBy")
+  approvedLeaves LecturerLeave[]  @relation("ApprovedBy")
+  schedules      Schedule[]       @relation("LecturerSchedule")
+  attendanceMarked Attendance[]   @relation("MarkedBy")
+  lostItems      LostFound[]      @relation("ReportedBy")
+  claimedItems   LostFound[]      @relation("ClaimedBy")
+}
+
+model Schedule {
+  id           Int          @id @default(autoincrement())
+  department   Department
+  year         Int
+  semester     Int
+  academicYear String
+  day          String
+  time         String
+  subject      String
+  room         String
+  type         String
+  lecturerId   Int?
+  lecturer     User?        @relation("LecturerSchedule", fields: [lecturerId], references: [id])
+  attendances  Attendance[]
+}
+
+model Notice {
+  id               Int          @id @default(autoincrement())
+  title            String
+  body             String
+  category         String
+  pinned           Boolean      @default(false)
+  icon             String       @default("megaphone")
+  date             DateTime     @default(now())
+  targetType       TargetType   @default(EVERYONE)
+  targetDepartment Department?
+  targetYear       Int?
+  targetRole       TargetRole?
+  sentById         Int?
+  sentBy           User?        @relation("SentBy", fields: [sentById], references: [id])
+  attachments      Attachment[]
+}
+
+model Attachment {
+  id        Int            @id @default(autoincrement())
+  noticeId  Int
+  fileUrl   String
+  fileName  String
+  fileType  AttachmentType
+  fileSize  Int
+  createdAt DateTime       @default(now())
+  notice    Notice         @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+}
+
+model Facility {
+  id          Int       @id @default(autoincrement())
+  facilityKey String    @unique
+  name        String
+  description String
+  capacity    Int
+  location    String
+  color       String
+  icon        String
+  rules       String[]
+  bookings    Booking[]
+}
+
+model Booking {
+  id           Int           @id @default(autoincrement())
+  userId       Int
+  facilityId   Int
+  date         String
+  slots        Int[]
+  purpose      String
+  status       BookingStatus @default(PENDING)
+  academicYear String?
+  createdAt    DateTime      @default(now())
+  facility     Facility      @relation(fields: [facilityId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
+}
+
+model LecturerLeave {
+  id           Int         @id @default(autoincrement())
+  userId       Int
+  startDate    DateTime
+  endDate      DateTime
+  reason       String?
+  status       LeaveStatus @default(PENDING)
+  approvedById Int?
+  academicYear String?
+  createdAt    DateTime    @default(now())
+  user         User        @relation(fields: [userId], references: [id])
+  approvedBy   User?       @relation("ApprovedBy", fields: [approvedById], references: [id])
+}
+
+// Attendance and LostFound models exist in schema but are Phase 5 — not yet wired up
+model Attendance {
+  id           Int              @id @default(autoincrement())
+  studentId    Int
+  scheduleId   Int
+  date         DateTime
+  status       AttendanceStatus @default(ABSENT)
+  markedById   Int?
+  markedAt     DateTime         @default(now())
+  academicYear String?
+  student      User             @relation(fields: [studentId], references: [id])
+  schedule     Schedule         @relation(fields: [scheduleId], references: [id])
+  markedBy     User?            @relation("MarkedBy", fields: [markedById], references: [id])
+  @@unique([studentId, scheduleId, date])
+}
+
+enum AttendanceStatus { PRESENT ABSENT LATE }
+
+model LostFound {
+  id            Int             @id @default(autoincrement())
+  type          LostFoundType
+  title         String
+  description   String
+  location      String?
+  imageUrl      String?
+  status        LostFoundStatus @default(OPEN)
+  reportedById  Int
+  claimedById   Int?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  reportedBy    User            @relation("ReportedBy", fields: [reportedById], references: [id])
+  claimedBy     User?           @relation("ClaimedBy", fields: [claimedById], references: [id])
+}
+
+enum LostFoundType   { LOST FOUND }
+enum LostFoundStatus { OPEN CLAIMED RESOLVED CLOSED }
+```
+
+---
+
+## 5. Folder Structure
+
 ```
 campus-companion-backend/
 ├── prisma/
-│   ├── schema.prisma              ← All DB models (User, Contact, Schedule, Notice, Facility, Booking)
-│   └── seed.js                    ← Seeds DB with sample contacts, schedule, notices, facilities, users
-├── src/
-│   ├── index.js                   ← Entry point: Hono app, all middleware, all routes mounted
-│   ├── db.js                      ← Prisma client singleton
-│   ├── middleware/
-│   │   ├── auth.js                ← JWT auth middleware + adminMiddleware
-│   │   └── errorHandler.js        ← Global Zod + general error handler
-│   ├── routes/
-│   │   ├── auth.js                ← POST /auth/register, POST /auth/login
-│   │   ├── contacts.js            ← GET /contacts, GET /contacts/:id (with ?search=)
-│   │   ├── schedule.js            ← GET /schedule (with ?day= filter)
-│   │   ├── notices.js             ← GET /notices (with ?category= filter)
-│   │   ├── facilities.js          ← GET /facilities, GET /facilities/:key
-│   │   └── bookings.js            ← GET /bookings/my, GET /bookings/slots, POST /bookings,
-│   │                                 PATCH /bookings/:id/status (admin), GET /bookings/all (admin)
-│   └── validators/
-│       ├── auth.validator.js      ← Zod schemas: registerSchema, loginSchema
-│       └── booking.validator.js   ← Zod schema: bookingSchema
-├── .env
-├── .env.example
-├── .gitignore
-└── package.json
-```
+│   ├── schema.prisma             ← Phase 1 complete — all enums, new fields, rebuilt models
+│   ├── prisma.config.js
+│   ├── seed.js                   ← Updated: Department enum, intakeYear, designation, new Schedule shape
+│   ├── fix-passwords.js
+│   ├── import-students.js        ← Updated: intakeYear, semester, isRepeating, Department enum
+│   ├── import-lecturers.js       ← Updated: designation, officeHours, Department + Designation enums
+│   ├── import-facilities.js
+│   ├── import-notices.js
+│   └── data/
+│       ├── students.csv
+│       └── lecturers.csv
+└── src/
+    ├── index.js                  ← All routes mounted including new schedule + leave routes
+    ├── db.js
+    ├── middleware/
+    │   ├── auth.js
+    │   └── errorHandler.js
+    └── routes/
+        ├── auth.js
+        ├── contacts.js
+        ├── schedule.js           ← Phase 2 complete: role-aware, admin CRUD, lecturer assignment
+        ├── notices.js            ← Phase 2 ready for targeting (targeting logic next)
+        ├── facilities.js
+        ├── bookings.js
+        └── lecturer.js           ← Phase 2 complete: PENDING→APPROVED/REJECTED workflow, /leave/all
 
-### Admin Dashboard (`campus-companion-admin/` — to be scaffolded)
-```
 campus-companion-admin/
-├── src/
-│   ├── main.jsx                   ← App entry point
-│   ├── App.jsx                    ← Router setup, protected routes
-│   ├── api/
-│   │   └── client.js              ← Axios instance with JWT interceptor
-│   ├── pages/
-│   │   ├── LoginPage.jsx          ← Admin login form
-│   │   ├── BookingsPage.jsx       ← View all bookings, approve/reject
-│   │   ├── NoticesPage.jsx        ← Create/edit/delete notices
-│   │   ├── SchedulePage.jsx       ← Weekly timetable grid, add/edit slots
-│   │   └── FacilitiesPage.jsx     ← Manage facilities, set blackout periods
-│   ├── components/
-│   │   ├── Layout.jsx             ← Sidebar navigation, header
-│   │   ├── ProtectedRoute.jsx     ← Redirects to login if not authenticated
-│   │   └── ...
-│   └── hooks/
-│       └── useAuth.js             ← Auth state management
-├── index.html
-├── vite.config.js
-├── tailwind.config.js
-└── package.json
+└── src/
+    ├── main.jsx
+    ├── App.jsx
+    ├── index.css                 ← Full CSS design system (navy + gold, DM Serif + DM Sans)
+    ├── api/client.js
+    ├── context/AuthContext.jsx
+    └── pages/
+        ├── LoginPage.jsx
+        ├── DashboardPage.jsx
+        ├── BookingsPage.jsx
+        ├── NoticesPage.jsx
+        ├── LeavePage.jsx         ← Phase 2 complete: approve/reject buttons, status badges, dept filter
+        ├── SchedulePage.jsx      ← Phase 2 complete: timetable grid, lecturer assign, all bugs fixed
+        └── FacilitiesPage.jsx
+
+CampusCompanion/
+├── App.js
+└── src/
+    ├── api/client.js
+    ├── context/AuthContext.js
+    ├── navigation/AppNavigator.js ← Phase 2: Schedule tab added for lecturers
+    ├── screens/
+    │   ├── LoginScreen.js
+    │   ├── HomeScreen.js
+    │   ├── ContactsScreen.js
+    │   ├── ContactDetailScreen.js
+    │   ├── ScheduleScreen.js     ← Phase 2 complete: role-aware (student timetable / lecturer teaching view)
+    │   ├── NoticeBoardScreen.js
+    │   ├── BookingScreen.js
+    │   ├── MybookingsScreen.js
+    │   └── MyLeaveScreen.js      ← Phase 2 complete: status badges, leave board for lecturers
+    └── theme/theme.js
 ```
 
 ---
 
-## 4. Database Schema (Prisma)
+## 6. Key Code Snippets
 
-| Model | Key Fields |
-|---|---|
-| `User` | id, studentId (unique), name, email (unique), password (hashed), role (STUDENT/ADMIN) |
-| `Contact` | id, name, role, phone, email, department, officeHours |
-| `Schedule` | id, day, time, subject, room, type (Lab/Lecture/Tutorial/Workshop) |
-| `Notice` | id, title, body, category, pinned, icon, date |
-| `Facility` | id, facilityKey (unique), name, description, capacity, location, color, icon, rules (String[]) |
-| `Booking` | id, userId (→ User), facilityId (→ Facility), date, slots (Int[]), purpose, status (PENDING/APPROVED/REJECTED), createdAt |
-
-Enums: `Role` (STUDENT, ADMIN), `BookingStatus` (PENDING, APPROVED, REJECTED)
-
----
-
-## 5. What Is Remaining / Next Steps
-
-### ✅ Completed
-- [x] Full backend API with all routes (auth, contacts, schedule, notices, facilities, bookings)
-- [x] JWT authentication and admin middleware
-- [x] Slot conflict checking on bookings
-- [x] Database schema and seed data
-- [x] All Expo mobile screens connected to real backend API
-- [x] JWT token stored in AsyncStorage on mobile
-- [x] LoginScreen built in Expo
-
-### 🔲 Admin Dashboard (Vite + React) — Main Priority
-- [ ] Scaffold Vite + React project: `campus-companion-admin/`
-- [ ] Set up Tailwind CSS + shadcn/ui
-- [ ] Build `LoginPage.jsx` — POST `/auth/login` with admin credentials, store JWT
-- [ ] Build `ProtectedRoute.jsx` — redirect to login if no token
-- [ ] Build `Layout.jsx` — sidebar with nav links to all pages
-- [ ] Build `BookingsPage.jsx` — table of all bookings, approve/reject buttons (PATCH `/bookings/:id/status`)
-- [ ] Build `NoticesPage.jsx` — list notices, form to create/edit/delete
-- [ ] Build `SchedulePage.jsx` — weekly timetable grid, add/edit/delete class slots
-- [ ] Build `FacilitiesPage.jsx` — list facilities, set temporary unavailability (blackout periods)
-
-### 🔲 Backend Additions Needed for Admin Dashboard
-- [ ] Add `POST /notices`, `PATCH /notices/:id`, `DELETE /notices/:id` (admin only)
-- [ ] Add `POST /contacts`, `PATCH /contacts/:id`, `DELETE /contacts/:id` (admin only)
-- [ ] Add `POST /schedule`, `PATCH /schedule/:id`, `DELETE /schedule/:id` (admin only)
-- [ ] Add facility blackout model to Prisma schema: `FacilityBlackout` (facilityId, startDate, endDate, reason)
-- [ ] Add `POST /facilities/:key/blackout`, `DELETE /facilities/:key/blackout/:id` (admin only)
-- [ ] Update `GET /bookings/slots` to also block slots that fall within a blackout period
-
-### 🔲 Notifications
-- [ ] Add `expo-notifications` to Expo app for push notification support
-- [ ] Store Expo push tokens in the User table on backend
-- [ ] When admin approves/rejects a booking, send push notification to the student
-- [ ] When admin publishes a notice, send push notification to all students
-
-### 🔲 Backend Enhancements
-- [ ] Add refresh token mechanism (currently tokens expire after 7 days)
-- [ ] Add rate limiting middleware (`hono/throttle`)
-- [ ] Deploy backend to Railway or Render (both have free PostgreSQL tiers)
-
----
-
-## 6. How to Continue in a New Claude Chat
-
-Copy and paste this entire `progress.md` file into a new Claude chat and say:
-
-> **"Continue building my Campus Companion project. Here is the full context."**
-
-Then ask for what you need, for example:
-
-- *"Scaffold the Vite + React admin dashboard with Tailwind and shadcn/ui"*
-- *"Build the LoginPage and ProtectedRoute for the admin dashboard"*
-- *"Build the BookingsPage for the admin dashboard with approve/reject"*
-- *"Add the CRUD endpoints for notices and schedule to the backend"*
-- *"Add the facility blackout feature to the backend and Prisma schema"*
-- *"Set up push notifications when a booking is approved or rejected"*
-- *"Help me deploy the backend to Railway with a free PostgreSQL database"*
-
-Claude will have full context of every route, the database schema, all middleware, all design decisions, and the current state of all three parts of the system.
-
----
-
-## 7. API Response Format (Consistent)
-
-All endpoints return:
-```json
-{ "success": true, "data": { ... } }
+### `src/db.js`
+```js
+require('dotenv').config();
+const { PrismaClient } = require('@prisma/client');
+const { PrismaPg } = require('@prisma/adapter-pg');
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
+module.exports = prisma;
 ```
-or on error:
-```json
-{ "success": false, "message": "..." }
+
+### `prisma/prisma.config.js`
+```js
+require('dotenv').config();
+const { defineConfig } = require('prisma/config');
+module.exports = defineConfig({
+  schema: 'prisma/schema.prisma',
+  datasource: { url: process.env.DATABASE_URL },
+});
 ```
-Zod validation errors return:
-```json
-{ "success": false, "message": "Validation error", "errors": [ ... ] }
+
+### Academic year helper (used in `schedule.js`)
+```js
+// Accounts for academic year starting in August (month index 7)
+function deriveCurrentYear(intakeYear, academicStartMonth = 7) {
+  const now = new Date();
+  const academicYearStart = now.getMonth() >= academicStartMonth
+    ? now.getFullYear()
+    : now.getFullYear() - 1;
+  return academicYearStart - intakeYear + 1;
+}
+```
+
+### `src/middleware/auth.js`
+```js
+const jwt = require('jsonwebtoken');
+
+const authMiddleware = async (c, next) => {
+  const header = c.req.header('Authorization');
+  if (!header?.startsWith('Bearer '))
+    return c.json({ success: false, message: 'Unauthorized' }, 401);
+  try {
+    c.set('user', jwt.verify(header.split(' ')[1], process.env.JWT_SECRET));
+    await next();
+  } catch {
+    return c.json({ success: false, message: 'Invalid token' }, 401);
+  }
+};
+
+const adminMiddleware = async (c, next) => {
+  if (c.get('user')?.role !== 'ADMIN')
+    return c.json({ success: false, message: 'Admins only' }, 403);
+  await next();
+};
+
+const lecturerMiddleware = async (c, next) => {
+  const role = c.get('user')?.role;
+  if (role !== 'LECTURER' && role !== 'ADMIN')
+    return c.json({ success: false, message: 'Lecturers only' }, 403);
+  await next();
+};
+
+module.exports = { authMiddleware, adminMiddleware, lecturerMiddleware };
+```
+
+### `.env`
+```
+DATABASE_URL="postgresql://postgres:password@localhost:5432/campus_companion"
+JWT_SECRET="cst_rub_campus_companion_secret_2026"
+JWT_EXPIRES_IN="7d"
+PORT=3000
 ```
 
 ---
 
-## 8. Backend API Reference
+## 7. API Reference
 
-### Auth Routes (no authentication required)
-| Method | Route | Description |
+### Public
+| Method | Route | Notes |
 |---|---|---|
-| POST | `/auth/register` | Register new student, returns JWT |
-| POST | `/auth/login` | Login, returns JWT + user object |
+| POST | `/auth/login` | Accepts email OR studentId |
 
-### Student Routes (JWT required)
-| Method | Route | Description |
+### Authenticated (JWT required)
+| Method | Route | Notes |
 |---|---|---|
-| GET | `/contacts` | All contacts, supports `?search=` |
-| GET | `/contacts/:id` | Single contact |
-| GET | `/schedule` | All schedule entries, supports `?day=Monday` |
-| GET | `/notices` | All notices, supports `?category=Exam` |
+| GET | `/contacts` | Returns lecturers (`?search=`) |
+| GET | `/notices` | All notices (`?category=`) |
 | GET | `/facilities` | All facilities |
-| GET | `/facilities/:key` | Single facility by key (e.g. `football`) |
-| GET | `/bookings/my` | Current student's bookings |
-| GET | `/bookings/slots?facilityId=&date=` | Already-booked slots for a facility+date |
-| POST | `/bookings` | Create a booking (checks slot conflicts) |
+| GET | `/bookings/my` | Current user's bookings |
+| GET | `/bookings/slots?facilityId=&date=` | slotMap → `{ bookedBy, status }` |
+| POST | `/bookings` | Students only, FCFS conflict check |
+| GET | `/schedule` | Role-aware: student sees dept+year timetable, lecturer sees teaching schedule |
+| GET | `/lecturer/on-leave` | Lecturers on approved leave today |
+| GET | `/lecturer/leave/all` | All leave records with department info (all roles) |
+| POST | `/lecturer/leave` | Lecturer/Admin submit leave — starts as PENDING |
+| DELETE | `/lecturer/leave/:id` | Cancel own leave |
 
-### Admin Routes (JWT + Admin role required)
-| Method | Route | Description |
+### Admin only
+| Method | Route | Notes |
 |---|---|---|
-| GET | `/bookings/all` | All bookings with user + facility info |
+| GET | `/bookings/all` | All bookings |
 | PATCH | `/bookings/:id/status` | Approve or reject a booking |
+| POST/PATCH/DELETE | `/notices/:id` | Create, edit, delete notices |
+| GET | `/schedule/department/:dept/year/:year` | Full timetable for dept+year (all semesters) |
+| POST | `/schedule` | Create schedule entry with lecturer assignment |
+| PATCH | `/schedule/:id` | Edit entry including reassigning lecturer |
+| DELETE | `/schedule/:id` | Delete entry (returns 404/409 on Prisma errors) |
+| PATCH | `/lecturer/leave/:id/status` | Approve or reject a leave request |
 
 ---
 
-## 9. Installation & Running
+## 8. Known Fixes Applied (Phase 2)
 
-### Backend
+### `SchedulePage.jsx` — 6 bugs fixed
+1. **Day pre-selection** — column "Add class" buttons pass `{ _new: true, day }` so modal opens on correct day
+2. **`lecturerId` type safety** — always coerced to string for `<select>`, null-checked with `!= null`
+3. **Semester comparison** — `Number(s.semester) === Number(semester)` prevents silent empty timetable
+4. **`window.confirm` removed** — replaced with styled `DeleteConfirmModal` component
+5. **Delete error handling** — `onError` handler shows toast notification instead of silent failure
+6. **Toast component** — bottom-right auto-dismissing toast for delete success and failure
+
+### `schedule.js` — 4 bugs fixed
+1. **Academic year calculation** — `deriveCurrentYear()` helper accounts for when academic year starts (August), not just `getFullYear() - intakeYear + 1`
+2. **Repeating students** — uses `user.repeatYear ?? currentYear` instead of raw `user.intakeYear`
+3. **PATCH type coercion** — `year`, `semester`, `lecturerId` explicitly coerced before Prisma call
+4. **DELETE error handling** — Prisma P2025 (not found) → 404, P2003 (FK constraint) → 409
+
+---
+
+## 9. How to Run
+
 ```bash
-cd campus-companion-backend
-npm install
-cp .env.example .env          # Set DATABASE_URL to your PostgreSQL connection string
-npx prisma migrate dev --name init
-npx prisma db seed
-npm run dev                    # Runs at http://localhost:3000
+# Backend
+cd campus-companion-backend && npm run dev   # → localhost:3000
+
+# Admin Dashboard
+cd campus-companion-admin/campus-companion-admin && npm run dev   # → localhost:5173
+
+# Mobile
+cd CampusCompanion && npx expo start
 ```
 
-### Mobile App
-```bash
-cd campus-companion              # Your Expo project folder
-npm install
-npx expo start
-```
-> On Android emulator use `http://10.0.2.2:3000` to reach backend. On iOS simulator use `http://localhost:3000`.
+**Physical device:** run `ipconfig`, find your Wi-Fi IPv4, update `API_BASE` in `CampusCompanion/src/api/client.js`.
 
-### Admin Dashboard (once scaffolded)
+**After schema changes:** `npx prisma migrate dev --name <migration_name>`
+
+**Seed DB:** `node prisma/seed.js`
+
+**Import data:**
 ```bash
-cd campus-companion-admin
-npm install
-npm run dev                    # Runs at http://localhost:5173
+node prisma/import-students.js  prisma/data/students.csv
+node prisma/import-lecturers.js prisma/data/lecturers.csv
 ```
 
 ---
 
-## 10. Test Credentials (after seeding)
+## 10. Test Credentials
 
-| Role | Email | Password |
+| Role | Login | Password |
 |---|---|---|
 | Admin | admin@cst.edu.bt | admin123 |
 | Student | student@cst.edu.bt | student123 |
+| Lecturer | lecturer@cst.edu.bt | lecturer123 |
+| Imported users | email or studentId/employeeId | their studentId/employeeId |
 
 ---
 
-## 11. Known Issues & Limitations
+## 11. Completed Phases
 
-1. No HTTPS locally — fine for development; add TLS on deployment
-2. No email notifications — booking status changes don't email students yet
-3. Schedule is college-wide, not per-student — all students see the same timetable
-4. No file uploads — notice attachments or user avatars not supported yet
-5. JWT has no refresh token — user must re-login after 7 days
-6. Facility blackout feature not yet built — admins cannot currently block facilities from being booked
+### ✅ Phase 1 — Data Foundation
+- Department enum (10 values) replacing free text
+- User model: `intakeYear`, `isRepeating`, `semester`, `programme`, `designation`, `officeHours`, `pushToken`
+- LecturerLeave: `status` (LeaveStatus enum), `approvedById`, `academicYear`
+- Notice: `targetType`, `targetDepartment`, `targetYear`, `targetRole`, `sentById`
+- Attachment model (linked to Notice, Cascade delete)
+- Schedule model: rebuilt with `department`, `year`, `semester`, `academicYear`, `lecturerId`
+- Booking: `academicYear` field
+- Attendance and LostFound models in schema (Phase 5 routes not yet built)
+- Migration run: `phase1_data_foundation`
+- seed.js, import-students.js, import-lecturers.js all updated for new fields and enums
+
+### ✅ Phase 2 — Core Feature Updates
+- **Leave approval workflow** — `PATCH /lecturer/leave/:id/status` backend route
+- **Leave visibility** — `GET /lecturer/leave/all` returns all lecturer leave with department info
+- **Admin leave page** — approve/reject buttons, status filter tabs (All/Pending/Approved/Rejected), department filter
+- **Mobile leave screen** — status badges (PENDING amber, APPROVED green, REJECTED red), college-wide leave board section for lecturers
+- **Schedule system rebuild** — role-aware backend routes, admin timetable grid page, mobile schedule screen for both students (dept+year view) and lecturers (personal teaching view)
+- **6 schedule bugs fixed** — see section 8 above
 
 ---
 
-*Last updated: April 2026 | CST, RUB — SWE201 Programming Assignment 1 | System v1.1 (Backend + Mobile complete, Admin Dashboard in progress)*
+## 12. What's Remaining
+
+### Phase 2 (one item left)
+- [ ] Notice targeting — server-side filter on `GET /notices` based on user's dept/year/role + admin target selector on creation form
+
+### Phase 3 — Communications
+- [ ] File attachments on notices (Cloudinary setup + upload endpoint + mobile attachment viewer)
+- [ ] Push notifications (Expo push tokens + all trigger events)
+
+### Phase 4 — User Management
+- [ ] Profile screen (mobile — students and lecturers)
+- [ ] Lecturer management page (admin dashboard)
+- [ ] Student management page with bulk year progression (admin dashboard)
+- [ ] Department-aware home screen alerts (mobile)
+
+### Phase 5 — Advanced Features
+- [ ] Attendance tracking (routes, lecturer marking UI, student percentage view, at-risk alerts)
+- [ ] Lost and Found (routes, mobile screen, admin management page)
+
+---
+
+## 13. Design Tokens
+
+| Token | Value |
+|---|---|
+| Primary | `#1A3C6E` (CST navy) |
+| Accent | `#F4A623` (gold) |
+| Background | `#F0F2F7` |
+| Mobile fonts | StyleSheet.create() only, tokens in `src/theme/theme.js` |
+| Dashboard fonts | DM Serif Display (headings) + DM Sans (body) |
+| Dashboard CSS | Full design system in `index.css` — variables for all colours, shadows, radii |
+
+---
+
+*Campus Companion v4.0 (in progress) — SWE201 PA1 — CST, RUB — May 2026*
+*Phase 1 + Phase 2 complete. Phase 2 notice targeting remaining.*
