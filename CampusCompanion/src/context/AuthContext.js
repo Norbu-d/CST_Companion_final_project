@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { registerPushTokenWithBackend } from '../utils/registerPushToken';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(null);
-  const [token, setToken]     = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser]           = useState(null);
+  const [token, setToken]         = useState(null);
+  const [loading, setLoading]     = useState(true);
+  const [userLoaded, setUserLoaded] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -16,8 +18,17 @@ export function AuthProvider({ children }) {
         if (u) setUser(JSON.parse(u));
       } catch (_) {}
       setLoading(false);
+      setUserLoaded(true);
     })();
   }, []);
+
+  // Register push token whenever user is logged in (login + app reopen)
+  useEffect(() => {
+    if (!token) return;
+    registerPushTokenWithBackend().catch((err) => {
+      console.warn('Push token registration:', err?.message || err);
+    });
+  }, [token]);
 
   const login = async (tokenVal, userVal) => {
     await AsyncStorage.multiSet([
@@ -37,7 +48,7 @@ export function AuthProvider({ children }) {
   const role = user?.role ?? null;
 
   return (
-    <AuthContext.Provider value={{ user, token, role, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, role, loading, userLoaded, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

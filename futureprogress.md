@@ -19,6 +19,9 @@
 | 4 | Admin could not assign schedules | Admin dashboard SchedulePage with timetable grid and lecturer assignment dropdown |
 | 5 | Leave had no approval workflow | PENDING → APPROVED / REJECTED workflow with admin approve/reject in dashboard |
 | 6 | Lecturers could not see colleague leave | `GET /lecturer/leave/all` + college-wide leave board on mobile leave screen |
+| 7 | Notices go to everyone | Server-side targeting on `GET /notices`, admin target selector, mobile target badges |
+| 8 | No file/image attachments on notices | Upload endpoint, admin file picker, mobile image preview + open/download |
+| 9 | No push notifications | Expo push tokens, notify on leave/booking/notice events |
 | 10 | Student year was a manual field | Replaced with `intakeYear` + `deriveCurrentYear()` calculating year automatically |
 | 11 | No department head concept | `Designation` enum: HEAD_OF_DEPARTMENT, SENIOR_LECTURER, LECTURER, LAB_TECHNICIAN, ADMIN_STAFF |
 | 12 | No academic year tracking | `academicYear` field added to Schedule and Booking; `academicYear` on LecturerLeave |
@@ -26,9 +29,6 @@
 ### 🔲 Still To Do
 | # | Issue | Phase |
 |---|---|---|
-| 7 | Notices go to everyone | Phase 2 (last remaining item) |
-| 8 | No file/image attachments on notices | Phase 3 |
-| 9 | No push notifications | Phase 3 |
 | 13 | No attendance tracking | Phase 5 |
 | 14 | No lost and found system | Phase 5 |
 
@@ -48,8 +48,8 @@ See `progress.md` section 4 for the complete current schema.
 - `Booking` — academicYear field added
 
 ### Models with schema done but routes not yet built (Phase 3–5)
-- `Notice` — targeting fields in schema, targeting logic in routes **not yet implemented**
-- `Attachment` — model in schema, Cloudinary integration **not yet built**
+- `Notice` — targeting + attachments complete
+- `Attachment` — upload via `/upload`, local storage or optional Cloudinary
 - `Attendance` — model in schema, all routes **not yet built** (Phase 5)
 - `LostFound` — model in schema, all routes **not yet built** (Phase 5)
 
@@ -59,9 +59,9 @@ See `progress.md` section 4 for the complete current schema.
 
 ---
 
-### Phase 2 — One Item Remaining
+### Phase 2 — Complete ✅
 
-#### 3.1 Notice Targeting (Backend + Admin Dashboard + Mobile)
+#### 3.1 Notice Targeting (Backend + Admin Dashboard + Mobile) — DONE
 
 **Backend — update `GET /notices` in `src/routes/notices.js`:**
 
@@ -337,12 +337,14 @@ Lecturers → Home · Schedule · Contacts · Notices · Leave · Attendance · 
 Admins    → Home · Contacts · Schedule · Notices · Bookings · Leave · Profile
 ```
 
-Current state (after Phase 2):
+Current state (Phase 2 complete):
 ```
-Students  → Home · Schedule · Notices · Bookings (no Attendance, LostFound, Profile yet)
-Lecturers → Home · Schedule · Contacts · Notices · Leave (no Attendance, Profile yet)
-Admins    → Dashboard (web only)
+Students  → Home · Contacts · Schedule · Notices · Bookings
+Lecturers → Home · Schedule · Contacts · Notices · Leave
+Admins    → Dashboard web: Home · Bookings · Schedule · Notices · Leave · Facilities
+            (+ mobile AdminTabs if logged in as ADMIN on app)
 ```
+Phase 4/5 tabs not yet added: Attendance, Lost&Found, Profile
 
 ---
 
@@ -357,20 +359,20 @@ Admins    → Dashboard (web only)
 | `prisma/import-lecturers.js` | ✅ Updated for designation, officeHours, Department + Designation enums |
 | `src/routes/schedule.js` | ✅ Phase 2 complete — role-aware, admin CRUD, 4 bugs fixed |
 | `src/routes/lecturer.js` | ✅ Phase 2 complete — approval workflow, /leave/all endpoint |
-| `src/routes/notices.js` | 🔲 Phase 2 remaining — add targetType filtering to GET /notices |
-| `src/routes/upload.js` | 🔲 Phase 3 — new Cloudinary upload endpoint |
-| `src/routes/users.js` | 🔲 Phase 4 — profile get/update, push token save |
-| `src/routes/notifications.js` | 🔲 Phase 3 — push notification helper |
+| `src/routes/notices.js` | ✅ Phase 2 complete — targetType filtering, auth loads user profile for targeting |
+| `src/routes/upload.js` | ✅ Phase 3 — multipart upload (local `./uploads/` or Cloudinary) |
+| `src/routes/users.js` | ✅ Phase 3 — `POST /push-token`; 🔲 Phase 4 profile routes |
+| `src/utils/pushNotifications.js` | ✅ Phase 3 — Expo send helper + all triggers wired |
 | `src/routes/attendance.js` | 🔲 Phase 5 — all attendance routes |
 | `src/routes/lostfound.js` | 🔲 Phase 5 — all lost and found routes |
-| `src/index.js` | 🔲 Mount new routes as built (upload, users, notifications, attendance, lostfound) |
+| `src/index.js` | ✅ Upload mounted; 🔲 users, notifications, attendance, lostfound when built |
 
 ### Admin Dashboard
 | File | Status |
 |---|---|
 | `src/pages/SchedulePage.jsx` | ✅ Phase 2 complete — timetable grid, assign lecturers, 6 bugs fixed |
 | `src/pages/LeavePage.jsx` | ✅ Phase 2 complete — approve/reject, status filters, dept filter |
-| `src/pages/NoticesPage.jsx` | 🔲 Phase 2 remaining — add target selector to create/edit modal |
+| `src/pages/NoticesPage.jsx` | ✅ Phase 2 + 3 — target selector, file upload (JPG/PNG/PDF/DOC/DOCX) |
 | `src/pages/LecturersPage.jsx` | 🔲 Phase 4 — lecturer management |
 | `src/pages/StudentsPage.jsx` | 🔲 Phase 4 — student management + bulk year progression |
 | `src/pages/AttendancePage.jsx` | 🔲 Phase 5 — attendance overview |
@@ -383,13 +385,14 @@ Admins    → Dashboard (web only)
 |---|---|
 | `src/screens/ScheduleScreen.js` | ✅ Phase 2 complete — role-aware, students see timetable, lecturers see teaching schedule |
 | `src/screens/MyLeaveScreen.js` | ✅ Phase 2 complete — status badges, leave board section for lecturers |
-| `src/screens/NoticeBoardScreen.js` | 🔲 Phase 2 remaining — attachment indicator (after backend targeting done) |
+| `src/screens/NoticeBoardScreen.js` | ✅ Phase 2 + 3 — target labels, image preview, tap to open/download files |
 | `src/screens/ProfileScreen.js` | 🔲 Phase 4 — new screen |
 | `src/screens/HomeScreen.js` | 🔲 Phase 4 — department-aware alert strip |
 | `src/screens/AttendanceScreen.js` | 🔲 Phase 5 — student view + lecturer marking UI |
 | `src/screens/LostFoundScreen.js` | 🔲 Phase 5 — lost and found board + post form |
-| `src/navigation/AppNavigator.js` | 🔲 Phase 4 — add Profile tab; Phase 5 — add Attendance, LostFound tabs |
-| `src/context/AuthContext.js` | 🔲 Phase 3 — register push token on login |
+| `src/navigation/AppNavigator.js` | ✅ Phase 2 — role tabs incl. lecturer Schedule; 🔲 Phase 4/5 Profile, Attendance, LostFound |
+| `src/context/AuthContext.js` | ✅ Phase 3 — register push token on login / app reopen |
+| `src/utils/registerPushToken.js` | ✅ Phase 3 — Expo permissions + `POST /users/push-token` |
 
 ---
 
@@ -397,8 +400,7 @@ Admins    → Dashboard (web only)
 
 Copy a prompt below and paste it with both `progress.md` and `futureprogress.md`:
 
-- *"Finish Phase 2: add notice targeting — update GET /notices to filter by user context and update NoticesPage.jsx with a target selector on the create/edit modal"*
-- *"Build Phase 3: set up Cloudinary and add file attachments to notices — upload endpoint, admin modal file upload, mobile attachment viewer"*
+- *"Build Phase 3: set up Expo push notifications with all trigger events — push token saving, notification helper, wire into leave and booking approve/reject"*
 - *"Build Phase 3: set up Expo push notifications with all trigger events — push token saving, notification helper, wire into leave and booking approve/reject"*
 - *"Build Phase 4: profile screen for mobile app — student and lecturer views with inline editing"*
 - *"Build Phase 4: lecturer management page for admin dashboard"*
@@ -411,5 +413,4 @@ Copy a prompt below and paste it with both `progress.md` and `futureprogress.md`
 
 *Created: May 2026 | CST, RUB — SWE201 Programming Assignment 1*
 *Campus Companion v4.0 — Phase 1 + Phase 2 complete*
-*Last updated: Phase 2 schedule rebuild done (6 bugs fixed), leave approval workflow done*
-*(One Phase 2 item remaining: notice targeting)*
+*Last updated: Phase 3 complete — push notifications on leave, booking, new notice; attachments + targeting done*

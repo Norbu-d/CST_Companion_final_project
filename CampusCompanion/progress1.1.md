@@ -492,11 +492,11 @@ node prisma/import-lecturers.js prisma/data/lecturers.csv
 
 ## 12. What's Remaining
 
-### Phase 2 (one item left)
-- [ ] Notice targeting — server-side filter on `GET /notices` based on user's dept/year/role + admin target selector on creation form
+### Phase 2 ✅ Complete
+- [x] Leave approval, leave board, schedule rebuild, notice targeting, lecturer Schedule tab
 
 ### Phase 3 — Communications
-- [ ] File attachments on notices (Cloudinary setup + upload endpoint + mobile attachment viewer)
+- [x] File attachments on notices
 - [ ] Push notifications (Expo push tokens + all trigger events)
 
 ### Phase 4 — User Management
@@ -525,4 +525,4 @@ node prisma/import-lecturers.js prisma/data/lecturers.csv
 ---
 
 *Campus Companion v4.0 (in progress) — SWE201 PA1 — CST, RUB — May 2026*
-*Phase 1 + Phase 2 complete. Phase 2 notice targeting remaining.*
+*Phase 1 + Phase 2 complete. Next: Phase 3 push notifications.*

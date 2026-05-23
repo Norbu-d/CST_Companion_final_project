@@ -1,39 +1,11 @@
 const { Hono } = require('hono');
 const prisma = require('../db');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+const { deriveCurrentYear } = require('../utils/deriveCurrentYear');
 
 const router = new Hono();
 
 router.use('/*', authMiddleware);
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * Derive the current academic year number for a student.
- *
- * Academic years in most institutions begin mid-year (e.g. August/September).
- * We treat the academic year as starting in August (month index 7).
- *
- * Examples (assuming August start):
- *   intakeYear 2023, current date Jan 2026  → academic year started Sep 2025 → year 3
- *   intakeYear 2023, current date Sep 2026  → academic year started Sep 2026 → year 4
- *
- * @param {number} intakeYear  - The calendar year the student enrolled (e.g. 2023)
- * @param {number} [academicStartMonth=7] - 0-based month index when academic year begins (7 = August)
- * @returns {number} Current academic year (1-based)
- */
-function deriveCurrentYear(intakeYear, academicStartMonth = 7) {
-  const now = new Date();
-  // The academic year "label" is the calendar year in which it starts.
-  // If we haven't yet passed the start month this calendar year, the current
-  // academic year started in the PREVIOUS calendar year.
-  const academicYearStart =
-    now.getMonth() >= academicStartMonth
-      ? now.getFullYear()
-      : now.getFullYear() - 1;
-
-  return academicYearStart - intakeYear + 1;
-}
 
 // ─── GET /schedule — Role-aware schedule ──────────────────────────────────────
 // Students  → schedule for their department + computed current year
