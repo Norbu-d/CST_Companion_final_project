@@ -816,15 +816,15 @@ npx expo start
 
 ## 17. What Is Remaining 🔲
 
-### Phase 2 — Core Feature Updates (Next Priority)
-- [ ] Leave approval workflow — backend PATCH route + admin dashboard approve/reject buttons
-- [ ] Leave visibility for all lecturers — `GET /lecturer/leave/all` + mobile leave board section
-- [ ] Schedule system rebuild — backend routes + admin schedule management page + mobile schedule screen for both students and lecturers
-- [ ] Notice targeting — backend filters by user context on `GET /notices` + admin target selector on creation
+### Phase 2 — Core Feature Updates ✅ COMPLETE
+- [x] Leave approval workflow — `PATCH /lecturer/leave/:id/status` + admin approve/reject
+- [x] Leave visibility — `GET /lecturer/leave/all` + mobile leave board for lecturers
+- [x] Schedule rebuild — role-aware `GET /schedule`, admin timetable grid, mobile Schedule (students + lecturers)
+- [x] Notice targeting — server-side filter, admin target selector, mobile target badges
 
-### Phase 3 — New Communication Features
-- [ ] File attachments on notices — Cloudinary setup + upload endpoint + mobile attachment viewer
-- [ ] Push notifications — Expo setup + push token saving + all notification triggers
+### Phase 3 — New Communication Features ✅ COMPLETE
+- [x] File attachments on notices — `/upload`, admin file picker, mobile preview/download
+- [x] Push notifications — Expo tokens, notify on leave approve/reject, booking, new notice, lecturer leave → students
 
 ### Phase 4 — User Features
 - [ ] Profile screen — mobile app for students and lecturers

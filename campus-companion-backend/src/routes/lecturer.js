@@ -1,6 +1,11 @@
 const { Hono } = require('hono');
 const prisma = require('../db');
 const { authMiddleware, lecturerMiddleware, adminMiddleware } = require('../middleware/auth');
+const {
+  fireAndForget,
+  notifyLeaveStatus,
+  notifyStudentsLecturerOnLeave,
+} = require('../utils/pushNotifications');
 
 const router = new Hono();
 
@@ -132,7 +137,10 @@ router.patch('/leave/:id/status', adminMiddleware, async (c) => {
     },
   });
 
-  // TODO: Send push notification to lecturer about approval/rejection
+  fireAndForget(notifyLeaveStatus(updated, status));
+  if (status === 'APPROVED') {
+    fireAndForget(notifyStudentsLecturerOnLeave(updated, updated.user));
+  }
 
   return c.json({ success: true, data: updated });
 });

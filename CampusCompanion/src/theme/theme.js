@@ -130,3 +130,16 @@ export const CLASS_TYPE_COLORS = {
   Tutorial: colors.amber,
   Workshop: colors.purple,
 };
+
+/** Combined tokens (for screens that prefer theme.colors) */
+export const theme = {
+  colors: {
+    ...colors,
+    textMuted: colors.textLight,
+    surface: colors.card,
+  },
+  spacing,
+  radius,
+  typography,
+  shadows,
+};

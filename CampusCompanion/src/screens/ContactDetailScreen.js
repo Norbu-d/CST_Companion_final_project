@@ -273,3 +273,5 @@ const styles = StyleSheet.create({
   tipCard: { backgroundColor: colors.blueLight, borderRadius: radius.lg, padding: spacing.md, flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start', borderWidth: 1, borderColor: '#BFDBFE' },
   tipText: { flex: 1, fontSize: 12, color: colors.blueDark, lineHeight: 18 },
 });
+
+

@@ -37,15 +37,11 @@ function tabIcon(routeName, focused, color) {
 }
 
 // ── Tab bar style ─────────────────────────────────────────────────────────────
-// KEY FIX: Do NOT set explicit height. Let React Native size it naturally from
-// paddingTop + paddingBottom + icon/label. Hard-coded heights cause the tab bar
-// to push content off-screen or clip labels on different device densities.
 const TAB_BAR_STYLE = {
   backgroundColor: '#fff',
   borderTopWidth: 1,
   borderTopColor: '#EAECF4',
   paddingTop: 8,
-  // Android safe bottom padding; iOS uses safe-area insets automatically
   paddingBottom: Platform.OS === 'android' ? 8 : 4,
   ...Platform.select({
     ios: {
@@ -67,7 +63,6 @@ const BASE_TAB_OPTIONS = {
     fontSize: 10,
     fontWeight: '600',
     letterSpacing: 0.1,
-    // Small bottom offset so label isn't jammed against the system nav bar
     marginBottom: Platform.OS === 'android' ? 2 : 0,
   },
 };
@@ -100,6 +95,7 @@ function LecturerTabs() {
       })}
     >
       <Tab.Screen name="Home"     component={HomeScreen} />
+      <Tab.Screen name="Schedule" component={ScheduleScreen} />
       <Tab.Screen name="Contacts" component={ContactsScreen} />
       <Tab.Screen name="Notices"  component={NoticeBoardScreen} />
       <Tab.Screen name="Leave"    component={MyLeaveScreen} />
@@ -126,7 +122,17 @@ function AdminTabs() {
 }
 
 function MainTabs() {
-  const { role } = useAuth();
+  const { role, loading, userLoaded } = useAuth();
+
+  // Wait until AsyncStorage has fully loaded user+role before rendering tabs
+  if (!userLoaded || loading) {
+    return (
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   if (role === 'LECTURER') return <LecturerTabs />;
   if (role === 'ADMIN')    return <AdminTabs />;
   return <StudentTabs />;

@@ -1,6 +1,8 @@
 require('dotenv').config();
+const path = require('path');
 const { Hono } = require('hono');
 const { serve } = require('@hono/node-server');
+const { serveStatic } = require('@hono/node-server/serve-static');
 const { cors } = require('hono/cors');
 const { logger } = require('hono/logger');
 
@@ -11,6 +13,8 @@ const noticeRoutes = require('./routes/notices');
 const facilityRoutes = require('./routes/facilities');
 const bookingRoutes = require('./routes/bookings');
 const lecturerRoutes = require('./routes/lecturer');
+const uploadRoutes = require('./routes/upload');
+const userRoutes = require('./routes/users');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = new Hono();
@@ -26,6 +30,15 @@ app.use('*', cors({
 // Health check
 app.get('/', (c) => c.json({ success: true, message: 'Campus Companion API is running 🎓' }));
 
+// Local file uploads (when Cloudinary is not configured)
+app.use(
+  '/uploads/*',
+  serveStatic({
+    root: path.join(__dirname, '../uploads'),
+    rewriteRequestPath: (p) => p.replace(/^\/uploads\/?/, ''),
+  })
+);
+
 // Routes
 app.route('/auth', authRoutes);
 app.route('/contacts', contactRoutes);
@@ -34,6 +47,8 @@ app.route('/notices', noticeRoutes);
 app.route('/facilities', facilityRoutes);
 app.route('/bookings', bookingRoutes);
 app.route('/lecturer', lecturerRoutes);
+app.route('/upload', uploadRoutes);
+app.route('/users', userRoutes);
 
 // Error handler
 app.onError(errorHandler);
@@ -43,6 +58,8 @@ app.notFound((c) => c.json({ success: false, message: 'Route not found' }, 404))
 
 const PORT = process.env.PORT || 3000;
 
-serve({ fetch: app.fetch, port: PORT }, () => {
-  console.log(`🚀 Campus Companion API running at http://localhost:${PORT}`);
+serve({ fetch: app.fetch, port: PORT, hostname: '0.0.0.0' }, (info) => {
+  console.log(`🚀 Campus Companion API running on port ${info.port}`);
+  console.log(`   Local:   http://localhost:${info.port}`);
+  console.log(`   Network: use your Wi-Fi IPv4 from ipconfig (e.g. http://192.168.0.111:${info.port})`);
 });

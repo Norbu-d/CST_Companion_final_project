@@ -1,22 +1,26 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Pin, Plus, Pencil, Trash2, Megaphone, BookOpen, AlertTriangle, Info, Calendar, X, Search } from 'lucide-react'
-import api from '../api/client'
+import { Pin, Plus, Pencil, Trash2, Megaphone, BookOpen, AlertTriangle, Info, Calendar, X, Search, Paperclip, Upload, FileText, Image as ImageIcon } from 'lucide-react'
+import api, { uploadNoticeFile } from '../api/client'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const DEPARTMENTS = [
-  'Computer Science',
-  'Information Technology',
-  'Electronics and Communication',
-  'Electrical Engineering',
-  'Civil Engineering',
-  'Mechanical Engineering',
-  'Architecture',
-  'Geology',
-  'Surveying',
-  'Environmental Management',
+  { value: 'SOFTWARE_ENGINEERING',        label: 'Software Engineering' },
+  { value: 'INFORMATION_TECHNOLOGY',      label: 'Information Technology' },
+  { value: 'ELECTRICAL_ENGINEERING',      label: 'Electrical Engineering' },
+  { value: 'CIVIL_ENGINEERING',           label: 'Civil Engineering' },
+  { value: 'MECHANICAL_ENGINEERING',      label: 'Mechanical Engineering' },
+  { value: 'ELECTRONICS_ENGINEERING',     label: 'Electronics Engineering' },
+  { value: 'INSTRUMENTATION_ENGINEERING', label: 'Instrumentation Engineering' },
+  { value: 'ARCHITECTURE',               label: 'Architecture' },
+  { value: 'WATER_RESOURCE_ENGINEERING',  label: 'Water Resource Engineering' },
+  { value: 'GEOLOGY',                    label: 'Geology' },
 ]
+
+function fmtDept(val) {
+  return DEPARTMENTS.find(d => d.value === val)?.label ?? val?.replace(/_/g, ' ') ?? ''
+}
 
 const TARGET_TYPES = [
   { value: 'EVERYONE',   label: 'Everyone',           icon: '🌐' },
@@ -64,17 +68,39 @@ function TargetBadge({ notice }) {
   if (!targetType || targetType === 'EVERYONE')
     return <span style={{ ...base, background: 'rgba(26,60,110,0.08)', color: '#2A5298' }}>🌐 Everyone</span>
   if (targetType === 'DEPARTMENT')
-    return <span style={{ ...base, background: 'rgba(37,99,235,0.10)', color: '#2563EB' }}>🏛️ {targetDepartment || 'Dept'}</span>
+    return <span style={{ ...base, background: 'rgba(37,99,235,0.10)', color: '#2563EB' }}>🏛️ {fmtDept(targetDepartment) || 'Dept'}</span>
   if (targetType === 'YEAR_GROUP')
-    return <span style={{ ...base, background: 'rgba(16,163,74,0.10)', color: '#16A34A' }}>📅 Yr {targetYear} · {targetDepartment || 'All'}</span>
+    return <span style={{ ...base, background: 'rgba(16,163,74,0.10)', color: '#16A34A' }}>📅 Yr {targetYear} · {fmtDept(targetDepartment) || 'All'}</span>
   if (targetType === 'ROLE_ONLY')
     return <span style={{ ...base, background: 'rgba(217,119,6,0.10)', color: '#D97706' }}>{targetRole === 'STUDENTS_ONLY' ? '🎓 Students' : '👨‍🏫 Lecturers'}</span>
   return null
 }
 
+const ACCEPT_FILES = '.jpg,.jpeg,.png,.pdf,.doc,.docx'
+const MAX_FILE_MB = 10
+
+function formatBytes(bytes) {
+  if (!bytes) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function fileIcon(fileType) {
+  if (fileType === 'IMAGE') return ImageIcon
+  return FileText
+}
+
 // ─── Notice Modal ─────────────────────────────────────────────────────────────
 
 function NoticeModal({ notice, onClose, onSave, isSaving }) {
+  const fileInputRef = useRef(null)
+  const [existingAttachments, setExistingAttachments] = useState(notice?.attachments ?? [])
+  const [newAttachments, setNewAttachments] = useState([])
+  const [removeAttachmentIds, setRemoveAttachmentIds] = useState([])
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState(null)
+
   const [form, setForm] = useState({
     title:            notice?.title            ?? '',
     body:             notice?.body             ?? '',
@@ -89,6 +115,36 @@ function NoticeModal({ notice, onClose, onSave, isSaving }) {
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
 
+  const processFiles = async (fileList) => {
+    if (!fileList?.length) return
+    setUploadError(null)
+    setUploading(true)
+    try {
+      const uploaded = []
+      for (const file of fileList) {
+        if (file.size > MAX_FILE_MB * 1024 * 1024) {
+          throw new Error(`${file.name} exceeds ${MAX_FILE_MB} MB`)
+        }
+        uploaded.push(await uploadNoticeFile(file))
+      }
+      setNewAttachments(prev => [...prev, ...uploaded])
+    } catch (err) {
+      setUploadError(err.message || 'Upload failed')
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const removeExisting = (id) => {
+    setExistingAttachments(prev => prev.filter(a => a.id !== id))
+    setRemoveAttachmentIds(prev => [...prev, id])
+  }
+
+  const removeNew = (index) => {
+    setNewAttachments(prev => prev.filter((_, i) => i !== index))
+  }
+
   const handleSubmit = () => {
     if (!form.title.trim() || !form.body.trim()) return
     onSave({
@@ -101,8 +157,15 @@ function NoticeModal({ notice, onClose, onSave, isSaving }) {
       targetDepartment: ['DEPARTMENT', 'YEAR_GROUP'].includes(form.targetType) ? (form.targetDepartment || null) : null,
       targetYear:       form.targetType === 'YEAR_GROUP' ? (parseInt(form.targetYear) || null) : null,
       targetRole:       form.targetType === 'ROLE_ONLY'  ? form.targetRole : null,
+      attachments:           newAttachments.length ? newAttachments : undefined,
+      removeAttachmentIds:   removeAttachmentIds.length ? removeAttachmentIds : undefined,
     })
   }
+
+  const allFiles = [
+    ...existingAttachments.map(a => ({ ...a, _existing: true })),
+    ...newAttachments.map((a, i) => ({ ...a, _newIndex: i, _existing: false })),
+  ]
 
   const IconComp = ICON_COMPONENTS[form.icon] ?? Megaphone
   const catColor = CATEGORY_COLORS[form.category] ?? CATEGORY_COLORS.General
@@ -202,9 +265,9 @@ function NoticeModal({ notice, onClose, onSave, isSaving }) {
           {(form.targetType === 'DEPARTMENT' || form.targetType === 'YEAR_GROUP') && (
             <div className="form-group">
               <label className="form-label">Department</label>
-              <select className="form-input" value={form.targetDepartment} onChange={e => set('targetDepartment', e.target.value)}>
-                <option value="">All Departments</option>
-                {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+              <select className="form-input" value={form.targetDepartment} onChange={e => set('targetDepartment', e.target.value)} required>
+                <option value="">Select department</option>
+                {DEPARTMENTS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
               </select>
             </div>
           )}
@@ -229,6 +292,90 @@ function NoticeModal({ notice, onClose, onSave, isSaving }) {
               </select>
             </div>
           )}
+
+          {/* Attachments */}
+          <div className="form-group">
+            <label className="form-label">Attachments (optional)</label>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 10px' }}>
+              JPG, PNG, PDF, DOC, DOCX — max {MAX_FILE_MB} MB each
+            </p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPT_FILES}
+              multiple
+              style={{ display: 'none' }}
+              onChange={e => processFiles(Array.from(e.target.files || []))}
+            />
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => !uploading && fileInputRef.current?.click()}
+              onKeyDown={e => e.key === 'Enter' && fileInputRef.current?.click()}
+              onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--navy)' }}
+              onDragLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
+              onDrop={e => {
+                e.preventDefault()
+                e.currentTarget.style.borderColor = 'var(--border)'
+                processFiles(Array.from(e.dataTransfer.files || []))
+              }}
+              style={{
+                border: '2px dashed var(--border)',
+                borderRadius: 'var(--radius-sm)',
+                padding: 24,
+                textAlign: 'center',
+                cursor: uploading ? 'wait' : 'pointer',
+                background: 'var(--surface-2)',
+                marginBottom: 12,
+              }}
+            >
+              <Upload size={22} style={{ color: 'var(--text-muted)', marginBottom: 8 }} />
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                {uploading ? 'Uploading…' : 'Drop files here or click to browse'}
+              </div>
+            </div>
+            {uploadError && (
+              <p style={{ fontSize: 12, color: '#DC2626', marginBottom: 8 }}>{uploadError}</p>
+            )}
+            {allFiles.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {allFiles.map((att) => {
+                  const Icon = fileIcon(att.fileType)
+                  const key = att.id ?? `new-${att._newIndex}`
+                  return (
+                    <div
+                      key={key}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '10px 12px', borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border)', background: 'var(--surface)',
+                      }}
+                    >
+                      {att.fileType === 'IMAGE' ? (
+                        <img src={att.fileUrl} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6 }} />
+                      ) : (
+                        <div style={{ width: 40, height: 40, borderRadius: 6, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Icon size={18} color="var(--navy)" />
+                        </div>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.fileName}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{att.fileType} · {formatBytes(att.fileSize)}</div>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-ghost"
+                        onClick={() => att._existing ? removeExisting(att.id) : removeNew(att._newIndex)}
+                        style={{ padding: 6 }}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
 
           {/* Pinned toggle */}
           <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '10px 14px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: form.pinned ? 'rgba(244,166,35,0.06)' : 'var(--surface)', borderColor: form.pinned ? 'var(--gold)' : 'var(--border)', marginBottom: 16 }}>
@@ -259,7 +406,7 @@ function NoticeModal({ notice, onClose, onSave, isSaving }) {
           <button
             className="btn btn-primary"
             onClick={handleSubmit}
-            disabled={!form.title.trim() || !form.body.trim() || isSaving}
+            disabled={!form.title.trim() || !form.body.trim() || isSaving || uploading}
           >
             {isSaving ? 'Saving…' : notice ? 'Save Changes' : 'Publish Notice'}
           </button>
@@ -339,6 +486,11 @@ function NoticeCard({ notice, onEdit, onDelete }) {
             <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: catColor.bg, color: catColor.color }}>{notice.category}</span>
             <TargetBadge notice={notice} />
             {notice.pinned && <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: 'rgba(244,166,35,0.12)', color: '#B77A10' }}>📌 Pinned</span>}
+            {notice.attachments?.length > 0 && (
+              <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: 'rgba(37,99,235,0.10)', color: '#2563EB', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <Paperclip size={10} /> {notice.attachments.length}
+              </span>
+            )}
           </div>
         </div>
       </div>

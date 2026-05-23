@@ -22,4 +22,19 @@ api.interceptors.response.use(
   }
 )
 
+/** Upload a notice attachment (multipart). Returns { fileUrl, fileName, fileType, fileSize }. */
+export async function uploadNoticeFile(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const token = localStorage.getItem('cc_admin_token')
+  const res = await fetch(`${API_BASE}/upload`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  })
+  const json = await res.json()
+  if (!json.success) throw new Error(json.message || 'Upload failed')
+  return json.data
+}
+
 export default api

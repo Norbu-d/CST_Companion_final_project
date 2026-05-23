@@ -2,6 +2,7 @@ const { Hono } = require('hono');
 const prisma = require('../db');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const { bookingSchema } = require('../validators/booking.validator');
+const { fireAndForget, notifyBookingStatus } = require('../utils/pushNotifications');
 
 const router = new Hono();
 
@@ -116,8 +117,13 @@ router.patch('/:id/status', adminMiddleware, async (c) => {
   const booking = await prisma.booking.update({
     where: { id },
     data: { status },
-    include: { facility: true, user: { select: { name: true, email: true } } },
+    include: {
+      facility: true,
+      user:     { select: { id: true, name: true, email: true, pushToken: true } },
+    },
   });
+
+  fireAndForget(notifyBookingStatus(booking, status));
 
   return c.json({ success: true, data: booking });
 });

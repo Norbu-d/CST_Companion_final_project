@@ -73,26 +73,55 @@ async function main() {
   ];
   await prisma.schedule.createMany({ data: schedule, skipDuplicates: true });
 
-  // ─── Notices ──────────────────────────────────────────────────────────────
+  // ─── Notices (with targeting samples for Phase 2) ─────────────────────────
+  const admin = await prisma.user.findUnique({ where: { email: 'admin@cst.edu.bt' } });
+
   await prisma.notice.createMany({
     data: [
       {
-        title:    'End Semester Exam Schedule Released',
-        body:     'The end semester examination schedule for Semester 2 has been released. Please check the notice board.',
-        category: 'Exam',
-        pinned:   true,
+        title:      'End Semester Exam Schedule Released',
+        body:       'The end semester examination schedule for Semester 2 has been released. Please check the notice board.',
+        category:   'Exam',
+        pinned:     true,
+        targetType: 'EVERYONE',
+        sentById:   admin?.id ?? null,
       },
       {
-        title:    'Library Hours Extended',
-        body:     'The CST library will remain open until 10 PM during the examination period.',
-        category: 'Academic',
-        pinned:   false,
+        title:            'Software Engineering Lab Safety Briefing',
+        body:             'All SE students must attend the lab safety briefing before using Lab 2 this semester.',
+        category:         'Academic',
+        pinned:           false,
+        targetType:       'DEPARTMENT',
+        targetDepartment: 'SOFTWARE_ENGINEERING',
+        sentById:         admin?.id ?? null,
       },
       {
-        title:    'Annual Sports Day 2026',
-        body:     'Annual Sports Day will be held on 25 April 2026. All students are encouraged to participate.',
-        category: 'Event',
-        pinned:   false,
+        title:            'Year 3 SE Project Registration',
+        body:             'Year 3 Software Engineering students: register your group project topic by 30 April.',
+        category:         'Academic',
+        pinned:           false,
+        targetType:       'YEAR_GROUP',
+        targetDepartment: 'SOFTWARE_ENGINEERING',
+        targetYear:       3,
+        sentById:         admin?.id ?? null,
+      },
+      {
+        title:      'Student Council Nominations Open',
+        body:       'Nominations for the student council are now open. Submit forms at the admin office.',
+        category:   'General',
+        pinned:     false,
+        targetType: 'ROLE_ONLY',
+        targetRole: 'STUDENTS_ONLY',
+        sentById:   admin?.id ?? null,
+      },
+      {
+        title:      'Faculty Meeting — Attendance Required',
+        body:       'All lecturers are required to attend the monthly faculty meeting on Friday at 3 PM in the Dean\'s conference room.',
+        category:   'General',
+        pinned:     false,
+        targetType: 'ROLE_ONLY',
+        targetRole: 'LECTURERS_ONLY',
+        sentById:   admin?.id ?? null,
       },
     ],
     skipDuplicates: true,
