@@ -1,15 +1,29 @@
 const { Hono } = require('hono');
 const prisma = require('../db');
-const { authMiddleware, lecturerMiddleware, adminMiddleware } = require('../middleware/auth');
-const {
-  fireAndForget,
-  notifyLeaveStatus,
-  notifyStudentsLecturerOnLeave,
-} = require('../utils/pushNotifications');
+const { authMiddleware, lecturerMiddleware } = require('../middleware/auth');
+const { fireAndForget } = require('../utils/pushNotifications');
+const { createLeaveAnnouncementNotice } = require('../utils/leaveNotice');
+const { broadcastNoticeDeleted } = require('../sse');
 
 const router = new Hono();
 
 router.use('/*', authMiddleware);
+
+// GET /lecturer/leave/me — Current user's leave history (from JWT)
+router.get('/leave/me', lecturerMiddleware, async (c) => {
+  const user = c.get('user');
+
+  const leaves = await prisma.lecturerLeave.findMany({
+    where: { userId: user.id },
+    include: {
+      user:       { select: { id: true, name: true, department: true, email: true } },
+      approvedBy: { select: { id: true, name: true } },
+    },
+    orderBy: { startDate: 'desc' },
+  });
+
+  return c.json({ success: true, data: leaves });
+});
 
 // GET /lecturer/leave/all — All leave records across all lecturers
 // ⚠ MUST be defined before /leave/:userId or Hono matches "all" as a userId
@@ -79,7 +93,7 @@ router.get('/on-leave/department/:dept', async (c) => {
   return c.json({ success: true, data: leaves });
 });
 
-// POST /lecturer/leave — Lecturer submits leave (starts as PENDING)
+// POST /lecturer/leave — Lecturer submits leave (auto-approved, college notified)
 router.post('/leave', lecturerMiddleware, async (c) => {
   const user = c.get('user');
   const { startDate, endDate, reason, academicYear } = await c.req.json();
@@ -101,48 +115,40 @@ router.post('/leave', lecturerMiddleware, async (c) => {
 
   const leave = await prisma.lecturerLeave.create({
     data: {
-      userId:      targetUserId,
-      startDate:   start,
-      endDate:     end,
-      reason:      reason      ?? null,
+      userId:       targetUserId,
+      startDate:    start,
+      endDate:      end,
+      reason:       reason ?? null,
       academicYear: academicYear ?? null,
-      status:      'PENDING',
+      status:       'APPROVED',
+    },
+    include: {
+      user: { select: { id: true, name: true, department: true, email: true, pushToken: true } },
     },
   });
+
+  if (leave.user) {
+    fireAndForget(createLeaveAnnouncementNotice(leave, leave.user));
+  }
 
   return c.json({ success: true, data: leave }, 201);
 });
 
-// PATCH /lecturer/leave/:id/status — Admin approve or reject leave
-router.patch('/leave/:id/status', adminMiddleware, async (c) => {
-  const id    = parseInt(c.req.param('id'));
-  const { status } = await c.req.json();
-  const admin = c.get('user');
+// PATCH /lecturer/leave/:id/status — Leave approval is not done by administrators
+router.patch('/leave/:id/status', authMiddleware, async (c) => {
+  const user = c.get('user');
 
-  if (!['APPROVED', 'REJECTED'].includes(status)) {
-    return c.json({ success: false, message: 'status must be APPROVED or REJECTED' }, 400);
+  if (user.role === 'ADMIN') {
+    return c.json({
+      success: false,
+      message: 'Administrators cannot approve or reject lecturer leave',
+    }, 403);
   }
 
-  const leave = await prisma.lecturerLeave.findUnique({ where: { id } });
-  if (!leave) {
-    return c.json({ success: false, message: 'Leave record not found' }, 404);
-  }
-
-  const updated = await prisma.lecturerLeave.update({
-    where: { id },
-    data:  { status, approvedById: admin.id },
-    include: {
-      user:       { select: { id: true, name: true, email: true, pushToken: true } },
-      approvedBy: { select: { id: true, name: true } },
-    },
-  });
-
-  fireAndForget(notifyLeaveStatus(updated, status));
-  if (status === 'APPROVED') {
-    fireAndForget(notifyStudentsLecturerOnLeave(updated, updated.user));
-  }
-
-  return c.json({ success: true, data: updated });
+  return c.json({
+    success: false,
+    message: 'Leave approval is not available through this endpoint',
+  }, 403);
 });
 
 // DELETE /lecturer/leave/:id — Lecturer cancels own leave; admin can cancel any
@@ -159,7 +165,23 @@ router.delete('/leave/:id', lecturerMiddleware, async (c) => {
     return c.json({ success: false, message: 'Forbidden: You can only cancel your own leave' }, 403);
   }
 
+  const linkedNotices = await prisma.notice.findMany({
+    where: {
+      category: 'Leave',
+      title:    'Lecturer on Leave',
+      body:     { contains: `[leave:${id}]` },
+    },
+    select: { id: true },
+  });
+
   await prisma.lecturerLeave.delete({ where: { id } });
+
+  if (linkedNotices.length > 0) {
+    await prisma.notice.deleteMany({
+      where: { id: { in: linkedNotices.map((n) => n.id) } },
+    });
+    linkedNotices.forEach((n) => broadcastNoticeDeleted(n.id));
+  }
 
   return c.json({ success: true, message: 'Leave cancelled' });
 });

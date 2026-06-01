@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { get } from '../api/client';
 import { registerPushTokenWithBackend } from '../utils/registerPushToken';
 
 const AuthContext = createContext(null);
@@ -21,6 +22,20 @@ export function AuthProvider({ children }) {
       setUserLoaded(true);
     })();
   }, []);
+
+  // Refresh profile from API so id/department are always present (fixes leave fetch)
+  useEffect(() => {
+    if (!token) return;
+    (async () => {
+      try {
+        const res = await get('/users/me');
+        if (res?.success && res.data) {
+          await AsyncStorage.setItem('user', JSON.stringify(res.data));
+          setUser(res.data);
+        }
+      } catch (_) {}
+    })();
+  }, [token]);
 
   // Register push token whenever user is logged in (login + app reopen)
   useEffect(() => {
@@ -45,10 +60,15 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const updateUser = async (userVal) => {
+    await AsyncStorage.setItem('user', JSON.stringify(userVal));
+    setUser(userVal);
+  };
+
   const role = user?.role ?? null;
 
   return (
-    <AuthContext.Provider value={{ user, token, role, loading, userLoaded, login, logout }}>
+    <AuthContext.Provider value={{ user, token, role, loading, userLoaded, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

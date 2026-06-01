@@ -1,25 +1,67 @@
 const { Hono } = require('hono');
 const prisma = require('../db');
+const { authMiddleware } = require('../middleware/auth');
 
 const router = new Hono();
 
+router.use('/*', authMiddleware);
+
+/**
+ * Resolve department filter from query + logged-in user.
+ * scope=all     → no department filter
+ * scope=mine    → user's department
+ * scope=<ENUM>  → specific department (e.g. SOFTWARE_ENGINEERING)
+ * (no scope)    → students default to their department; admin/lecturer see all
+ */
+function resolveDepartmentScope(user, scope) {
+  if (scope === 'all') return null;
+
+  if (scope && scope !== 'mine') {
+    return scope;
+  }
+
+  if (scope === 'mine') {
+    return user.department ?? null;
+  }
+
+  if (user.role === 'STUDENT') {
+    return user.department ?? null;
+  }
+
+  return null;
+}
+
 // ─── GET /contacts ────────────────────────────────────────────────────────────
-// Returns all LECTURER users as contacts
-// Query param: ?search=keyword
+// Returns LECTURER users as contacts (department-scoped for students by default)
+// Query: ?search=keyword  ?scope=all|mine|<Department enum>
 router.get('/', async (c) => {
   try {
+    const user   = c.get('user');
     const search = c.req.query('search');
+    const scope  = c.req.query('scope');
+
+    const department = resolveDepartmentScope(user, scope);
+
+    if (user.role === 'STUDENT' && !department && scope !== 'all') {
+      return c.json({
+        success: true,
+        data: [],
+        message: 'Your profile has no department set. Contact the admin office.',
+      });
+    }
 
     const where = { role: 'LECTURER' };
 
+    if (department) {
+      where.department = department;
+    }
+
     if (search) {
       const q = search.toLowerCase();
-      where.AND = {
-        OR: [
-          { name:       { contains: q, mode: 'insensitive' } },
-          { department: { contains: q, mode: 'insensitive' } },
-        ],
-      };
+      where.OR = [
+        { name:       { contains: q, mode: 'insensitive' } },
+        { department: { contains: q, mode: 'insensitive' } },
+      ];
     }
 
     const lecturers = await prisma.user.findMany({
@@ -28,23 +70,19 @@ router.get('/', async (c) => {
         id:         true,
         name:       true,
         email:      true,
-        contact:    true,   // phone number
+        contact:    true,
         department: true,
-        // Map User fields to what the mobile app expects
-        // role field used to derive "Lecturer" label
       },
       orderBy: { name: 'asc' },
     });
 
-    // Shape the response to match what ContactsScreen expects:
-    // { id, name, role, phone, email, department, officeHours }
-    const data = lecturers.map(l => ({
+    const data = lecturers.map((l) => ({
       id:          l.id,
       name:        l.name,
       role:        'Lecturer',
       phone:       l.contact ?? 'N/A',
       email:       l.email,
-      department:  l.department ?? 'CST',
+      department:  l.department,
       officeHours: 'Mon–Fri, 9:00–17:00',
     }));
 
@@ -56,7 +94,6 @@ router.get('/', async (c) => {
 });
 
 // ─── GET /contacts/:id ────────────────────────────────────────────────────────
-// Returns a single lecturer by their User id
 router.get('/:id', async (c) => {
   try {
     const id = parseInt(c.req.param('id'));
@@ -82,7 +119,7 @@ router.get('/:id', async (c) => {
       role:        'Lecturer',
       phone:       lecturer.contact ?? 'N/A',
       email:       lecturer.email,
-      department:  lecturer.department ?? 'CST',
+      department:  lecturer.department,
       officeHours: 'Mon–Fri, 9:00–17:00',
     };
 

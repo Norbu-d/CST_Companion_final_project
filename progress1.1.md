@@ -13,7 +13,7 @@ A full-stack digital companion for students, lecturers, and admins at CST with t
 
 | Part | Stack | Status |
 |---|---|---|
-| Mobile App | Expo SDK 55 / React Native | ✅ Core complete, Phase 2 screens updated |
+| Mobile App | Expo SDK 55 / React Native | ✅ Core complete; Contacts + Leave UX updated (Jun 2026) |
 | Backend API | Node.js / Hono / PostgreSQL | ✅ Phase 1 + Phase 2 complete |
 | Admin Dashboard | Vite + React | ✅ Phase 1 + Phase 2 complete |
 
@@ -39,7 +39,7 @@ A full-stack digital companion for students, lecturers, and admins at CST with t
 | Role | Permissions |
 |---|---|
 | `STUDENT` | Login · contacts · notices · schedule (own dept+year) · book facilities · view own bookings · view own attendance |
-| `LECTURER` | Login · contacts · notices · manage own leave · view teaching schedule · view colleague leave board |
+| `LECTURER` | Login · contacts · notices · submit/cancel own leave (auto-announced) · teaching schedule · college leave board |
 | `ADMIN` | All of the above + approve/reject bookings · approve/reject leave · create/edit/delete notices · manage schedule · manage lecturers · manage students |
 
 ---
@@ -254,12 +254,17 @@ campus-companion-backend/
     │   └── errorHandler.js
     └── routes/
         ├── auth.js
-        ├── contacts.js
+        ├── contacts.js           ← JWT + department scope (?scope=mine|all|<DEPT>)
         ├── schedule.js           ← Phase 2 complete: role-aware, admin CRUD, lecturer assignment
         ├── notices.js            ← Phase 2 ready for targeting (targeting logic next)
         ├── facilities.js
         ├── bookings.js
-        └── lecturer.js           ← Phase 2 complete: PENDING→APPROVED/REJECTED workflow, /leave/all
+        ├── lecturer.js           ← Leave CRUD; cancel deletes linked notice + SSE broadcast
+        └── users.js              ← GET/PATCH /users/me, push token
+    ├── sse.js                    ← broadcastNewNotice + broadcastNoticeDeleted
+    └── utils/
+        ├── leaveNotice.js        ← Creates Notice with [leave:id] marker
+        └── pushNotifications.js
 
 campus-companion-admin/
 └── src/
@@ -286,13 +291,14 @@ CampusCompanion/
     ├── screens/
     │   ├── LoginScreen.js
     │   ├── HomeScreen.js
-    │   ├── ContactsScreen.js
-    │   ├── ContactDetailScreen.js
+    │   ├── ContactsScreen.js     ← Dept dropdown picker; default my dept; server-scoped fetch
+    │   ├── ContactDetailScreen.js ← On-leave badge (uses leave.user.email)
     │   ├── ScheduleScreen.js     ← Phase 2 complete: role-aware (student timetable / lecturer teaching view)
-    │   ├── NoticeBoardScreen.js
+    │   ├── NoticeBoardScreen.js  ← SSE live notices; removes leave notice on cancel event
     │   ├── BookingScreen.js
     │   ├── MybookingsScreen.js
-    │   └── MyLeaveScreen.js      ← Phase 2 complete: status badges, leave board for lecturers
+    │   ├── MyLeaveScreen.js      ← Full-width Cancel Leave button; college leave board
+    │   └── ProfileScreen.js      ← Student/lecturer profile view + contact edit
     └── theme/theme.js
 ```
 
@@ -384,7 +390,12 @@ PORT=3000
 ### Authenticated (JWT required)
 | Method | Route | Notes |
 |---|---|---|
-| GET | `/contacts` | Returns lecturers (`?search=`) |
+| GET | `/contacts` | Lecturers — **JWT required**. `?scope=mine` (default for students), `?scope=all`, or `?scope=<Department enum>`. Optional `?search=` |
+| GET | `/contacts/:id` | Single lecturer contact |
+| GET | `/users/me` | Current user profile (department, year, etc.) |
+| PATCH | `/users/me` | Students: contact; Lecturers: contact + officeHours |
+| POST | `/users/push-token` | Save Expo push token |
+| GET | `/notices/live` | SSE stream for real-time notices |
 | GET | `/notices` | All notices (`?category=`) |
 | GET | `/facilities` | All facilities |
 | GET | `/bookings/my` | Current user's bookings |
@@ -393,8 +404,10 @@ PORT=3000
 | GET | `/schedule` | Role-aware: student sees dept+year timetable, lecturer sees teaching schedule |
 | GET | `/lecturer/on-leave` | Lecturers on approved leave today |
 | GET | `/lecturer/leave/all` | All leave records with department info (all roles) |
-| POST | `/lecturer/leave` | Lecturer/Admin submit leave — starts as PENDING |
-| DELETE | `/lecturer/leave/:id` | Cancel own leave |
+| GET | `/lecturer/leave/me` | Current user's leave history |
+| POST | `/lecturer/leave` | Submit leave — **auto-APPROVED** + Notice Board announcement |
+| DELETE | `/lecturer/leave/:id` | Cancel leave; deletes linked notice; SSE `deleted` broadcast |
+| PATCH | `/lecturer/leave/:id/status` | Returns 403 (approval workflow disabled in mobile flow) |
 
 ### Admin only
 | Method | Route | Notes |
@@ -410,7 +423,41 @@ PORT=3000
 
 ---
 
-## 8. Known Fixes Applied (Phase 2)
+## 8. Known Fixes Applied
+
+### Mobile — Contacts & Leave (Jun 2026)
+
+#### `ContactsScreen.js`
+1. **Department filtering (server-side)** — `GET /contacts?scope=mine` uses logged-in user's `department` from JWT; no unreliable client-only filter.
+2. **Default view** — Opens on **my department** lecturers (`deptFilter = 'mine'`).
+3. **Department picker UI** — Replaced horizontal sliding chips with a **dropdown / bottom sheet** (“Showing lecturers from” → tap to select department or All).
+4. **Performance** — Memoized rows, tuned `FlatList` (`initialNumToRender`, `windowSize`); filter changes use pull-to-refresh style update instead of full-screen blocking spinner; on-leave fetched once per screen focus.
+5. **Layout** — Fixed header + picker pinned above list (`topFixed`); filters always visible (not hidden during load).
+6. **On-leave badges** — Fixed email mapping: `leave.user?.email` (not `leave.email`).
+
+#### `ContactDetailScreen.js`
+- Same on-leave email fix for detail banner.
+
+#### `MyLeaveScreen.js`
+1. **Cancel button** — Replaced trash icon with full-width red **Cancel Leave** button on each card (own row, not squeezed beside badge).
+2. **Card layout** — Removed `overflow: hidden` clipping; status bar padding on header.
+
+#### `NoticeBoardScreen.js`
+- SSE handler for `{ type: 'deleted', id }` — leave notice disappears when lecturer cancels without manual refresh.
+
+### Backend — Contacts & Leave (Jun 2026)
+
+#### `src/routes/contacts.js`
+- All routes behind `authMiddleware`.
+- `resolveDepartmentScope(user, scope)` — students default to own department unless `scope=all`.
+- Returns raw `department` enum (removed misleading `'CST'` fallback string).
+- Students with no department get empty list + message.
+
+#### `src/routes/lecturer.js` + `src/utils/leaveNotice.js` + `src/sse.js`
+- Leave submit → `createLeaveAnnouncementNotice()` posts to Notice Board with `[leave:id]` marker in body.
+- Leave cancel → `deleteMany` on matching notices → `broadcastNoticeDeleted(noticeId)` to all SSE clients.
+
+### Phase 2 — Schedule & Admin (earlier)
 
 ### `SchedulePage.jsx` — 6 bugs fixed
 1. **Day pre-selection** — column "Add class" buttons pass `{ _new: true, day }` so modal opens on correct day
@@ -481,12 +528,20 @@ node prisma/import-lecturers.js prisma/data/lecturers.csv
 - seed.js, import-students.js, import-lecturers.js all updated for new fields and enums
 
 ### ✅ Phase 2 — Core Feature Updates
-- **Leave approval workflow** — `PATCH /lecturer/leave/:id/status` backend route
 - **Leave visibility** — `GET /lecturer/leave/all` returns all lecturer leave with department info
-- **Admin leave page** — approve/reject buttons, status filter tabs (All/Pending/Approved/Rejected), department filter
-- **Mobile leave screen** — status badges (PENDING amber, APPROVED green, REJECTED red), college-wide leave board section for lecturers
+- **Mobile leave screen** — status badges, college-wide leave board, cancel leave + notice cleanup
+- **Leave announcements** — Submit leave → auto-APPROVED + Notice Board post; cancel → notice removed (DB + SSE)
 - **Schedule system rebuild** — role-aware backend routes, admin timetable grid page, mobile schedule screen for both students (dept+year view) and lecturers (personal teaching view)
 - **6 schedule bugs fixed** — see section 8 above
+- **Admin leave page** — view/filter college leave (approve/reject may be disabled in current API — mobile uses direct announce flow)
+
+### ✅ Phase 2.1 — Contacts & Leave UX (Jun 2026)
+- [x] Contacts: server-side department scope (`/contacts?scope=`)
+- [x] Contacts: default my-department view + department dropdown picker
+- [x] Contacts: on-leave badge fix, layout/performance improvements
+- [x] My Leave: visible Cancel Leave button UI
+- [x] Leave cancel: auto-delete Notice Board message + SSE real-time removal
+- [x] `GET /users/me` profile refresh in `AuthContext` (department on login)
 
 ---
 
@@ -500,7 +555,8 @@ node prisma/import-lecturers.js prisma/data/lecturers.csv
 - [ ] Push notifications (Expo push tokens + all trigger events)
 
 ### Phase 4 — User Management
-- [ ] Profile screen (mobile — students and lecturers)
+- [x] Profile screen (mobile — basic view + contact edit for students/lecturers)
+- [ ] Profile: full edit flows, avatar, password change
 - [ ] Lecturer management page (admin dashboard)
 - [ ] Student management page with bulk year progression (admin dashboard)
 - [ ] Department-aware home screen alerts (mobile)
@@ -524,5 +580,19 @@ node prisma/import-lecturers.js prisma/data/lecturers.csv
 
 ---
 
-*Campus Companion v4.0 (in progress) — SWE201 PA1 — CST, RUB — May 2026*
-*Phase 1 + Phase 2 complete. Next: Phase 3 push notifications.*
+*Campus Companion v4.1 — SWE201 PA1 — CST, RUB — Jun 2026*
+*Phase 1 + Phase 2 + Contacts/Leave UX complete. Next: Phase 3 push notifications (triggers wired partially).*
+
+---
+
+## 14. Quick Reference — Contacts API
+
+| `scope` query | Who sees what |
+|---|---|
+| *(none)* or `mine` | Students → lecturers in **their** `User.department`; lecturers/admins → all unless `mine` with dept set |
+| `all` | All lecturers |
+| `SOFTWARE_ENGINEERING` (etc.) | Lecturers in that department only |
+
+**Mobile default:** `scope=mine` on first open → Software Engineering student sees only Software Engineering lecturers.
+
+**Change department in app:** Contacts → tap “Showing lecturers from” row → pick from bottom sheet.

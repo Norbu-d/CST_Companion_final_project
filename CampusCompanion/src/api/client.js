@@ -29,7 +29,7 @@ function resolveApiBase() {
   }
 
   // Last resort (update if your home Wi-Fi IP changes)
-  return 'http://192.168.0.111:3000';
+  return 'http://10.2.2.233:3000';
 }
 
 export const API_BASE = resolveApiBase();

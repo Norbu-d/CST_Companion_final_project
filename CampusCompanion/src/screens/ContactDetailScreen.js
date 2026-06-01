@@ -35,7 +35,7 @@ export default function ContactDetailScreen({ route }) {
         const res = await get('/lecturer/on-leave');
         if (res.success && Array.isArray(res.data)) {
           const match = res.data.find(
-            (leave) => leave.email?.toLowerCase() === contact.email?.toLowerCase()
+            (leave) => (leave.user?.email ?? leave.email)?.toLowerCase() === contact.email?.toLowerCase()
           );
           setOnLeave(match ?? null);
         }

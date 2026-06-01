@@ -4,6 +4,7 @@ const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const { buildNoticeTargetFilter } = require('../utils/noticeTargeting');
 const { deleteStoredFile } = require('../utils/fileUpload');
 const { fireAndForget, notifyNewNotice } = require('../utils/pushNotifications');
+const { broadcastNewNotice } = require('../sse');
 const { z } = require('zod');
 
 const router = new Hono();
@@ -180,6 +181,8 @@ router.post('/', authMiddleware, adminMiddleware, async (c) => {
 
     if (full) {
       fireAndForget(notifyNewNotice(full));
+      // Broadcast to all SSE subscribers
+      broadcastNewNotice(full);
     }
 
     return c.json({ success: true, data: full }, 201);
@@ -254,6 +257,52 @@ router.delete('/:id', authMiddleware, adminMiddleware, async (c) => {
   } catch (err) {
     console.error('DELETE /notices error:', err);
     return c.json({ success: false, message: 'Failed to delete notice' }, 500);
+  }
+});
+
+// ─── GET /notices/live ────────────────────────────────────────────────────────
+// SSE endpoint — authenticated clients receive real-time notice updates
+
+const { addSubscriber, removeSubscriber } = require('../sse');
+
+router.get('/live', authMiddleware, async (c) => {
+  try {
+    // Set up SSE headers
+    c.header('Content-Type', 'text/event-stream');
+    c.header('Cache-Control', 'no-cache');
+    c.header('Connection', 'keep-alive');
+    c.header('X-Accel-Buffering', 'no');
+
+    // Register this client as a subscriber
+    const clientId = addSubscriber(c.res);
+
+    // Send initial connection confirmation
+    c.res.write('data: {"type":"connected","message":"SSE stream established"}\n\n');
+
+    // Set up cleanup when client disconnects
+    c.req.raw.on('close', () => {
+      removeSubscriber(clientId);
+    });
+    c.req.raw.on('error', () => {
+      removeSubscriber(clientId);
+    });
+
+    // Keep connection alive with heartbeat (every 30 seconds)
+    const heartbeat = setInterval(() => {
+      try {
+        c.res.write(': heartbeat\n\n');
+      } catch {
+        clearInterval(heartbeat);
+        removeSubscriber(clientId);
+      }
+    }, 30000);
+
+    // Clean up interval on disconnect
+    c.req.raw.on('close', () => clearInterval(heartbeat));
+
+  } catch (err) {
+    console.error('SSE /notices/live error:', err);
+    return c.json({ success: false, message: 'SSE connection failed' }, 500);
   }
 });
 

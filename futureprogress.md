@@ -29,8 +29,12 @@
 ### 🔲 Still To Do
 | # | Issue | Phase |
 |---|---|---|
-| 13 | No attendance tracking | Phase 5 |
-| 14 | No lost and found system | Phase 5 |
+| 13 | Backend and DB running locally — APK cannot reach localhost | Phase 0 (DO THIS FIRST) |
+| 14 | No attendance tracking | Phase 5 |
+| 15 | No lost and found system | Phase 5 |
+| 16 | No self-registration — users cannot sign up themselves | Phase 4.5 |
+| 17 | Booking permissions not enforced — students can book any facility | Phase 4.5 |
+| 18 | Lecturer leave requires admin approval — should be instant | ✅ Phase 4.5.3 — auto-APPROVED + push on submit |
 
 ---
 
@@ -59,141 +63,70 @@ See `progress.md` section 4 for the complete current schema.
 
 ---
 
-### Phase 2 — Complete ✅
+### ⚠️ Phase 0 — Deployment (DO THIS BEFORE ANYTHING ELSE)
 
-#### 3.1 Notice Targeting (Backend + Admin Dashboard + Mobile) — DONE
+This is blocking all further progress. The app is currently wired to `localhost:3000` which only works in Expo Go via tunnel. Once you do an EAS build for APK, the app cannot reach the backend.
 
-**Backend — update `GET /notices` in `src/routes/notices.js`:**
+**Step 1 — Move database to Neon (free cloud PostgreSQL)**
+- Go to https://neon.tech → create free account → create project named `campus-companion`
+- Copy the connection string: `postgresql://user:pass@ep-xxx.neon.tech/campus_companion`
+- Update `DATABASE_URL` in your `.env` file with this new string
+- Run `npx prisma migrate deploy` to apply your existing migrations to the cloud DB
+- Re-seed: `node prisma/seed.js`
+- Re-import: `node prisma/import-students.js prisma/data/students.csv` and `node prisma/import-lecturers.js prisma/data/lecturers.csv`
 
-Currently returns all notices to everyone. Must filter server-side based on the requesting user:
+**Step 2 — Deploy backend to Railway**
+- Push your `campus-companion-backend` folder to a GitHub repo
+- Go to https://railway.app → New Project → Deploy from GitHub repo
+- Set environment variables in Railway dashboard:
+  - `DATABASE_URL` — your Neon connection string
+  - `JWT_SECRET` — `cst_rub_campus_companion_secret_2026`
+  - `JWT_EXPIRES_IN` — `7d`
+  - `PORT` — `3000`
+  - Any Cloudinary keys if using attachments
+- Railway gives you a URL like `https://campus-companion-backend.up.railway.app`
 
+**Step 3 — Update mobile app API_BASE**
+- In `CampusCompanion/src/api/client.js`, replace localhost with your Railway URL:
 ```js
-// Pseudo-logic for GET /notices
-const user = c.get('user')
-
-const notices = await prisma.notice.findMany({
-  where: {
-    OR: [
-      { targetType: 'EVERYONE' },
-      { targetType: 'DEPARTMENT', targetDepartment: user.department },
-      { targetType: 'YEAR_GROUP',
-        targetDepartment: user.department,
-        targetYear: user.role === 'STUDENT' ? deriveCurrentYear(user.intakeYear) : undefined },
-      { targetType: 'ROLE_ONLY',
-        targetRole: user.role === 'STUDENT' ? 'STUDENTS_ONLY' : 'LECTURERS_ONLY' },
-    ]
-  },
-  orderBy: [{ pinned: 'desc' }, { date: 'desc' }],
-  include: { sentBy: { select: { id: true, name: true } }, attachments: true }
-})
+const API_BASE = "https://campus-companion-backend.up.railway.app";
 ```
 
-**Admin Dashboard — update `NoticesPage.jsx`:**
-- Add **Target** selector to the create/edit modal:
-  - Everyone (default)
-  - Specific Department → show Department dropdown
-  - Specific Year Group → show Department + Year dropdowns
-  - Lecturers Only
-  - Students Only
-- Notice cards in the list show a target badge so admin can see who it was sent to
-- Pass `targetType`, `targetDepartment`, `targetYear`, `targetRole` in POST/PATCH body
-
-**Mobile — `NoticeBoardScreen.js`:**
-- No change needed — backend now filters correctly so the screen just shows what it receives
-- Optionally show a small "For your department" or "For Year 3" label on notice cards
-
----
-
-### Phase 3 — Communications
-
-#### 3.2 File Attachments on Notices
-
-**External service: Cloudinary (free tier)**
-```
-# Add to .env
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-```
+**Step 4 — EAS Build**
 ```bash
-npm install cloudinary multer
+npm install -g eas-cli
+eas login
+eas build:configure
 ```
-
-**New backend route — `src/routes/upload.js`:**
-```
-POST /upload   Admin only
-  - Accepts multipart/form-data with a file field
-  - Uploads to Cloudinary
-  - Returns: { fileUrl, fileName, fileType, fileSize }
-```
-
-**Updated `POST /notices`:**
-- Accept `attachments` array in body: `[{ fileUrl, fileName, fileType, fileSize }]`
-- Create Attachment records linked to the notice after notice creation
-
-**Updated `DELETE /notices/:id`:**
-- Before deleting, fetch all Attachment records
-- Call Cloudinary delete API for each fileUrl
-- Then delete notice (Attachment records cascade)
-
-**Admin Dashboard — `NoticesPage.jsx`:**
-- File upload area in create/edit modal (drag and drop or browse)
-- Supports: JPG, PNG, PDF, DOC, DOCX
-- Show file preview list: icon, name, size, remove button
-- Upload files to `/upload` first → get URLs → include in notice POST body
-
-**Mobile — `NoticeBoardScreen.js`:**
-- Notice cards show paperclip icon + file count if attachments exist
-- Notice detail screen shows:
-  - Inline image preview for IMAGE type
-  - Download button for PDF and DOCUMENT type
-  - Sender name and send date
-
----
-
-#### 3.3 Push Notifications
-
-**New backend route — `src/routes/users.js`:**
-```
-POST /users/push-token   Authenticated
-  - Body: { pushToken: string }
-  - Updates User.pushToken for current user
-```
-
-**Mobile — `AuthContext.js`:**
-```js
-// On login success, register push token
-import * as Notifications from 'expo-notifications'
-const token = await Notifications.getExpoPushTokenAsync()
-await api.post('/users/push-token', { pushToken: token.data })
-```
-
-**Backend notification helper — `src/routes/notifications.js`:**
-```js
-// Send push notification via Expo push API
-async function sendPush(pushToken, title, body) {
-  await fetch('https://exp.host/--/api/v2/push/send', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ to: pushToken, title, body })
-  })
+Add to `eas.json`:
+```json
+{
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" }
+    }
+  }
 }
 ```
+Run: `eas build --platform android --profile preview`
+Download APK from the EAS dashboard link once built.
 
-**All notification triggers:**
+**Result after Phase 0:**
+- APK works on any phone, anywhere
+- Push notifications work end to end
+- Admin dashboard can be deployed too (Vercel free tier for Vite) or run locally
+- Your lecturer can test the app on their own device
 
-| Event | Recipient | Message |
-|---|---|---|
-| Leave approved | Lecturer who submitted | "Your leave request has been approved" |
-| Leave rejected | Lecturer who submitted | "Your leave request was rejected" |
-| Booking approved | Student who booked | "Your booking for {facility} has been approved" |
-| Booking rejected | Student who booked | "Your booking for {facility} was rejected" |
-| New notice published | All users in target group | "New notice: {title}" |
-| Attendance drops below 80% | Student | "Warning: Your attendance in {subject} is at {pct}%" |
-| Attendance drops below 75% | Student | "Critical: You are at risk of being barred from {subject} exam" |
-| Lecturer approved leave | Students who have that lecturer | "{name} is on leave from {start} to {end}" |
+---
 
-Wire push calls into existing approve/reject routes — no new endpoints needed for most triggers.
+### Phase 3 — Communications ✅ Complete
+
+#### 3.1 Notice Targeting — DONE
+#### 3.2 File Attachments on Notices — DONE
+#### 3.3 Push Notifications — DONE
+
+All Phase 3 features are built. They will only work properly once Phase 0 deployment is complete (push tokens require a real device with a real build, not Expo Go).
 
 ---
 
@@ -256,6 +189,185 @@ Update `HomeScreen.js` to show a context-aware alert strip at the top:
 **Lecturers:**
 - "You have X classes today" — derived from schedule response for today's day
 - "Your leave request is pending approval" — if any PENDING leave exists
+
+---
+
+### Phase 4.5 — Sign Up, Booking Permissions, Auto-Leave
+
+---
+
+#### 4.5.1 — Self-Registration (Sign Up)
+
+**Decision: students self-register, lecturers are admin-created only.**
+
+A student registering as a lecturer would be a security problem. The fix is simple: the sign-up flow creates a `STUDENT` account only — no role selector exists on the form. Lecturers are still added by admin via the Lecturer Management page (Phase 4). Admin accounts are seeded manually, never via sign-up.
+
+**Backend — `src/routes/auth.js`:**
+
+Add a new route alongside the existing `POST /auth/login`:
+
+```
+POST /auth/register
+```
+
+Body:
+```json
+{
+  "name": "Tenzin Dorji",
+  "studentId": "STD220001",
+  "email": "std22001@cst.edu.bt",
+  "password": "somepassword",
+  "department": "SOFTWARE_ENGINEERING",
+  "intakeYear": 2022,
+  "semester": 2
+}
+```
+
+Rules:
+- `role` is hardcoded to `STUDENT` on the server — never taken from the request body
+- `email` and `studentId` must be unique — return a clear `400` error if either already exists
+- Password is hashed with `bcrypt` before saving (same as existing seed)
+- Returns a JWT on success (same shape as login response) so the user is logged in immediately after registering
+- `programme` defaults to `null` — student can update later from profile screen
+
+**Mobile — `src/screens/RegisterScreen.js`:**
+
+New screen. Fields:
+- Full Name
+- Student ID (e.g. `STD220001`)
+- Email
+- Department (dropdown using the Department enum values)
+- Intake Year (number input, e.g. `2022`)
+- Semester (1–8 selector)
+- Password
+- Confirm Password (client-side match check only)
+
+On submit:
+- `POST /auth/register` with the form data
+- On success: store JWT + user object in AuthContext (same as login), navigate to student tabs
+- On error: show the server's message inline (e.g. "Student ID already registered")
+
+**Navigation — `src/navigation/AppNavigator.js`:**
+
+Add a "Sign Up" link on the Login screen that navigates to `RegisterScreen`. The `AuthStack` gains a new `Register` screen. No changes needed to tab navigation.
+
+**No changes needed to:**
+- Admin dashboard — lecturers are still created there
+- Existing `POST /auth/login` route
+- Any existing JWT middleware
+
+---
+
+#### 4.5.2 — Booking Permissions by Role
+
+**Current problem:** students can book any facility including the Conventional Hall and classrooms. That should be restricted to lecturers.
+
+**Booking permission matrix:**
+
+| Role | Can book |
+|---|---|
+| Student | Basketball court only |
+| Lecturer | Any facility |
+| Admin | Any facility |
+
+**Backend — `src/routes/bookings.js`:**
+
+On `POST /bookings`, after authenticating the user, add a permission check before creating the booking:
+
+```js
+const STUDENT_ALLOWED_FACILITIES = ['basketball']; // facilityKey values
+
+if (req.user.role === 'STUDENT') {
+  if (!STUDENT_ALLOWED_FACILITIES.includes(body.facilityKey)) {
+    return res.status(403).json({
+      success: false,
+      message: 'Students can only book the basketball court.'
+    });
+  }
+}
+```
+
+The `facilityKey` values from the seed are: `football`, `hall`, `lab1`, `lab2`, `lab3`, `basketball` (add basketball to seed if not present).
+
+**Mobile — `src/screens/BookingsScreen.js`:**
+
+When the user is a STUDENT, filter the facilities list before rendering — only show basketball court. Do not show a disabled greyed-out list of the other facilities, just hide them entirely. This prevents confusion and also means students never even attempt to book something they cannot.
+
+When the user is a LECTURER or ADMIN, show all facilities as normal.
+
+Add the basketball court to `prisma/seed.js` if it is not already there:
+```js
+{
+  facilityKey: 'basketball',
+  name:        'Basketball Court',
+  description: 'Outdoor basketball court',
+  capacity:    10,
+  location:    'Sports Complex',
+  color:       'orange',
+  icon:        'basketball',
+  rules:       ['Book 24hrs in advance', 'Max 2hrs per booking', 'Return equipment after use'],
+}
+```
+
+---
+
+#### 4.5.3 — Lecturer Leave: Auto-Approval + Auto-Notification ✅ DONE
+
+**Current problem:** when a lecturer submits leave, it goes to `PENDING` and waits for admin to approve. This adds unnecessary admin work for routine leave.
+
+**Implemented:** `POST /lecturer/leave` creates `APPROVED` leave; `createLeaveAnnouncementNotice` posts to notice board (+ SSE + push); mobile shows "Announced" badge; admin leave page remains read-only.
+
+**New behaviour:**
+- Lecturer submits leave → status is immediately set to `APPROVED`, not `PENDING`
+- A push notification is sent instantly to all students and lecturers
+- Admin leave page shows the record as already `APPROVED` — no approve/reject buttons shown for lecturer leave
+- Admin can still see all records for visibility
+
+**Backend — `src/routes/lecturer.js`:**
+
+On `POST /lecturer/leave`, change the Prisma create call:
+
+```js
+// Before
+status: 'PENDING'
+
+// After
+status: 'APPROVED'
+```
+
+Immediately after saving, call the push notification helper:
+
+```js
+await sendLeaveNotification({
+  lecturerName: req.user.name,
+  department:   req.user.department,
+  startDate:    body.startDate,
+  endDate:      body.endDate,
+  reason:       body.reason,
+});
+```
+
+**Push notification content:**
+
+```
+Title: "Lecturer on Leave"
+Body:  "[Lecturer Name] ([Department]) is on leave from [startDate] to [endDate]."
+```
+
+Send to: all users (students + lecturers). Use the existing `sendPushNotifications` helper from `src/utils/pushNotifications.js`. Query all users with a stored `pushToken`:
+
+```js
+const tokens = await prisma.user.findMany({
+  where: { pushToken: { not: null } },
+  select: { pushToken: true }
+});
+```
+
+**Admin Dashboard — `src/pages/LeavePage.jsx`:**
+
+Currently the leave table shows Approve / Reject buttons for `PENDING` leave. Since lecturer leave now arrives as `APPROVED`, hide those buttons when `status === 'APPROVED'`. Show a green `Approved` badge instead. The admin can still see all records — they just cannot approve/reject what is already done.
+
+If admin-submitted leave (from other roles or future types) still needs approval, the existing flow is unchanged for those.
 
 ---
 
@@ -337,7 +449,7 @@ Lecturers → Home · Schedule · Contacts · Notices · Leave · Attendance · 
 Admins    → Home · Contacts · Schedule · Notices · Bookings · Leave · Profile
 ```
 
-Current state (Phase 2 complete):
+Current state (Phase 2 + 3 complete):
 ```
 Students  → Home · Contacts · Schedule · Notices · Bookings
 Lecturers → Home · Schedule · Contacts · Notices · Leave
@@ -358,12 +470,13 @@ Phase 4/5 tabs not yet added: Attendance, Lost&Found, Profile
 | `prisma/import-students.js` | ✅ Updated for intakeYear, semester, isRepeating, Department enum |
 | `prisma/import-lecturers.js` | ✅ Updated for designation, officeHours, Department + Designation enums |
 | `src/routes/schedule.js` | ✅ Phase 2 complete — role-aware, admin CRUD, 4 bugs fixed |
-| `src/routes/lecturer.js` | ✅ Phase 2 complete — approval workflow, /leave/all endpoint |
+| `src/routes/lecturer.js` | ✅ Phase 2 + 4.5.3 — auto-approve leave on submit, college push notify |
 | `src/routes/notices.js` | ✅ Phase 2 complete — targetType filtering, auth loads user profile for targeting |
 | `src/routes/upload.js` | ✅ Phase 3 — multipart upload (local `./uploads/` or Cloudinary) |
 | `src/routes/users.js` | ✅ Phase 3 — `POST /push-token`; 🔲 Phase 4 profile routes |
 | `src/utils/pushNotifications.js` | ✅ Phase 3 — Expo send helper + all triggers wired |
-| `src/routes/attendance.js` | 🔲 Phase 5 — all attendance routes |
+| `src/routes/auth.js` | ✅ login exists; 🔲 Phase 4.5 — add `POST /auth/register` |
+| `src/routes/bookings.js` | 🔲 Phase 4.5 — add role-based permission check on POST |
 | `src/routes/lostfound.js` | 🔲 Phase 5 — all lost and found routes |
 | `src/index.js` | ✅ Upload mounted; 🔲 users, notifications, attendance, lostfound when built |
 
@@ -386,7 +499,8 @@ Phase 4/5 tabs not yet added: Attendance, Lost&Found, Profile
 | `src/screens/ScheduleScreen.js` | ✅ Phase 2 complete — role-aware, students see timetable, lecturers see teaching schedule |
 | `src/screens/MyLeaveScreen.js` | ✅ Phase 2 complete — status badges, leave board section for lecturers |
 | `src/screens/NoticeBoardScreen.js` | ✅ Phase 2 + 3 — target labels, image preview, tap to open/download files |
-| `src/screens/ProfileScreen.js` | 🔲 Phase 4 — new screen |
+| `src/screens/RegisterScreen.js` | 🔲 Phase 4.5 — new sign-up screen (student only) |
+| `src/screens/BookingsScreen.js` | 🔲 Phase 4.5 — filter facilities by role (students see basketball only) |
 | `src/screens/HomeScreen.js` | 🔲 Phase 4 — department-aware alert strip |
 | `src/screens/AttendanceScreen.js` | 🔲 Phase 5 — student view + lecturer marking UI |
 | `src/screens/LostFoundScreen.js` | 🔲 Phase 5 — lost and found board + post form |
@@ -400,8 +514,10 @@ Phase 4/5 tabs not yet added: Attendance, Lost&Found, Profile
 
 Copy a prompt below and paste it with both `progress.md` and `futureprogress.md`:
 
-- *"Build Phase 3: set up Expo push notifications with all trigger events — push token saving, notification helper, wire into leave and booking approve/reject"*
-- *"Build Phase 3: set up Expo push notifications with all trigger events — push token saving, notification helper, wire into leave and booking approve/reject"*
+- *"Help me set up Phase 0 deployment — move my PostgreSQL database to Neon and deploy my Hono backend to Railway so my EAS APK build can reach the API"*
+- *"Build Phase 4.5: add student self-registration — new RegisterScreen on mobile and POST /auth/register backend route. Students only, no role selector, logs in immediately after registering"*
+- *"Build Phase 4.5: enforce booking permissions — students can only book the basketball court, lecturers can book any facility. Add the check to the backend route and filter the mobile facilities list by role"*
+- *"Build Phase 4.5: auto-approve lecturer leave — set status to APPROVED immediately on submit, send push notification to all users with lecturer name, department, and leave dates"*
 - *"Build Phase 4: profile screen for mobile app — student and lecturer views with inline editing"*
 - *"Build Phase 4: lecturer management page for admin dashboard"*
 - *"Build Phase 4: student management page for admin dashboard with bulk year progression"*
@@ -412,5 +528,5 @@ Copy a prompt below and paste it with both `progress.md` and `futureprogress.md`
 ---
 
 *Created: May 2026 | CST, RUB — SWE201 Programming Assignment 1*
-*Campus Companion v4.0 — Phase 1 + Phase 2 complete*
-*Last updated: Phase 3 complete — push notifications on leave, booking, new notice; attachments + targeting done*
+*Campus Companion v4.0 — Phase 1 + Phase 2 + Phase 3 complete*
+*Last updated: Phase 4.5 added — sign-up, booking permissions, auto-leave*

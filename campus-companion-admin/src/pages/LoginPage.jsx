@@ -43,7 +43,7 @@ export default function LoginPage() {
           {[
             { icon: '✦', text: 'Approve & reject facility bookings' },
             { icon: '✦', text: 'Publish campus-wide notices' },
-            { icon: '✦', text: 'Oversee lecturer leave records' },
+            { icon: '✦', text: 'View lecturer leave records' },
           ].map(({ icon, text }) => (
             <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <span style={{ color: '#F4A623', fontSize: 10 }}>{icon}</span>

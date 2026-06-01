@@ -17,6 +17,7 @@ import NoticeBoardScreen   from '../screens/NoticeBoardScreen';
 import BookingScreen       from '../screens/BookingScreen';
 import MyBookingsScreen    from '../screens/MybookingsScreen';
 import MyLeaveScreen       from '../screens/MyLeaveScreen';
+import ProfileScreen       from '../screens/ProfileScreen';
 
 const Stack = createStackNavigator();
 const Tab   = createBottomTabNavigator();
@@ -29,6 +30,7 @@ const TAB_ICONS = {
   Notices:   ['notifications', 'notifications-outline'],
   Bookings:  ['bookmark',      'bookmark-outline'],
   Leave:     ['bed',           'bed-outline'],
+  Profile:   ['person',        'person-outline'],
 };
 
 function tabIcon(routeName, focused, color) {
@@ -82,6 +84,7 @@ function StudentTabs() {
       <Tab.Screen name="Schedule" component={ScheduleScreen} />
       <Tab.Screen name="Notices"  component={NoticeBoardScreen} />
       <Tab.Screen name="Bookings" component={BookingScreen} />
+      <Tab.Screen name="Profile"  component={ProfileScreen} />
     </Tab.Navigator>
   );
 }
@@ -99,6 +102,7 @@ function LecturerTabs() {
       <Tab.Screen name="Contacts" component={ContactsScreen} />
       <Tab.Screen name="Notices"  component={NoticeBoardScreen} />
       <Tab.Screen name="Leave"    component={MyLeaveScreen} />
+      <Tab.Screen name="Profile"  component={ProfileScreen} />
     </Tab.Navigator>
   );
 }

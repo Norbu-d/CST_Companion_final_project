@@ -98,6 +98,10 @@ model User {
   sentNotices    Notice[]         @relation("SentBy")
   approvedLeaves LecturerLeave[]  @relation("ApprovedBy")
   schedules      Schedule[]       @relation("LecturerSchedule")
+
+  // ─── Indexes ──────────────────────────────────────────────────────────────
+  // Composite index for role + department filtering (contacts page)
+  @@index([role, department])
 }
 
 model Schedule {
@@ -113,6 +117,10 @@ model Schedule {
   type         String                       // "Lecture", "Lab", "Tutorial"
   lecturerId   Int?                         // assigned lecturer — null means unassigned
   lecturer     User?      @relation("LecturerSchedule", fields: [lecturerId], references: [id])
+
+  // ─── Indexes ──────────────────────────────────────────────────────────────
+  // Composite index for timetable queries (student loads schedule by dept+year+semester+academicYear)
+  @@index([department, year, semester, academicYear])
 }
 
 model Notice {
@@ -136,6 +144,14 @@ model Notice {
   
   // Attachments
   attachments      Attachment[]
+
+  // ─── Indexes ──────────────────────────────────────────────────────────────
+  // Composite index for DEPARTMENT & YEAR_GROUP targeting queries
+  @@index([targetType, targetDepartment, targetYear])
+  // Composite index for ROLE_ONLY targeting queries
+  @@index([targetType, targetRole])
+  // Composite index for pinned + date ordering (pinned desc, then date desc)
+  @@index([pinned, date(sort: Desc)])
 }
 
 model Facility {
@@ -163,6 +179,12 @@ model Booking {
   createdAt  DateTime      @default(now())
   facility   Facility      @relation(fields: [facilityId], references: [id])
   user       User          @relation(fields: [userId], references: [id])
+
+  // ─── Indexes ──────────────────────────────────────────────────────────────
+  // Composite index for user bookings with status filtering
+  @@index([userId, status])
+  // Index for facility availability queries
+  @@index([facilityId, date])
 }
 
 model LecturerLeave {
@@ -177,6 +199,10 @@ model LecturerLeave {
   createdAt    DateTime      @default(now())
   user         User          @relation(fields: [userId], references: [id])
   approvedBy   User?         @relation("ApprovedBy", fields: [approvedById], references: [id])
+
+  // ─── Indexes ──────────────────────────────────────────────────────────────
+  // Composite index for lecturer leave lookups (filter by userId & status)
+  @@index([userId, status])
 }
 
 model Attachment {

@@ -73,6 +73,36 @@ function formatDate(d) {
   });
 }
 
+function formatDepartment(dept) {
+  if (!dept) return 'CST';
+  return dept
+    .split('_')
+    .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+    .join(' ');
+}
+
+/** Notify all app users when a lecturer registers leave (auto-approved). */
+async function notifyLecturerLeaveSubmitted(leave, lecturer) {
+  const users = await prisma.user.findMany({
+    where:   { pushToken: { not: null } },
+    select:  { id: true, pushToken: true },
+  });
+
+  const tokens = users
+    .filter((u) => u.id !== lecturer.id)
+    .map((u) => u.pushToken);
+
+  const start = formatDate(leave.startDate);
+  const end   = formatDate(leave.endDate);
+  const dept  = formatDepartment(lecturer.department);
+  const body  = `${lecturer.name} (${dept}) is on leave from ${start} to ${end}.`;
+
+  await sendPushToMany(tokens, 'Lecturer on Leave', body, {
+    type:    'lecturer_leave',
+    leaveId: leave.id,
+  });
+}
+
 // ─── Event handlers ───────────────────────────────────────────────────────────
 
 async function notifyLeaveStatus(leave, status) {
@@ -195,6 +225,7 @@ module.exports = {
   fireAndForget,
   notifyLeaveStatus,
   notifyStudentsLecturerOnLeave,
+  notifyLecturerLeaveSubmitted,
   notifyBookingStatus,
   notifyNewNotice,
 };

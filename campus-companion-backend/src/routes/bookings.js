@@ -60,6 +60,7 @@ router.get('/slots', async (c) => {
 });
 
 // Create a booking — FCFS: PENDING counts as taken, no double-booking
+// Transaction ensures conflict check + creation are atomic
 router.post('/', async (c) => {
   const user = c.get('user');
 
@@ -71,38 +72,50 @@ router.post('/', async (c) => {
   const body = await c.req.json();
   const data = bookingSchema.parse(body);
 
-  // FCFS conflict check: any non-REJECTED booking on same facility+date+slots blocks this
-  const existing = await prisma.booking.findFirst({
-    where: {
-      facilityId: data.facilityId,
-      date: data.date,
-      status: { not: 'REJECTED' },
-      slots: { hasSome: data.slots },
-    },
-    include: {
-      user: { select: { name: true } },
-    },
-  });
+  try {
+    // Atomic transaction: conflict check + booking creation
+    const booking = await prisma.$transaction(async (tx) => {
+      // FCFS conflict check: any non-REJECTED booking on same facility+date+slots blocks this
+      const existing = await tx.booking.findFirst({
+        where: {
+          facilityId: data.facilityId,
+          date: data.date,
+          status: { not: 'REJECTED' },
+          slots: { hasSome: data.slots },
+        },
+      });
 
-  if (existing) {
-    return c.json({
-      success: false,
-      message: `One or more slots are already booked by ${existing.user.name}`,
-    }, 409);
+      if (existing) {
+        throw new Error('SLOT_CONFLICT');
+      }
+
+      // All checks passed — create the booking
+      const newBooking = await tx.booking.create({
+        data: {
+          userId: user.id,
+          facilityId: data.facilityId,
+          date: data.date,
+          slots: data.slots,
+          purpose: data.purpose,
+        },
+        include: { facility: true },
+      });
+
+      return newBooking;
+    });
+
+    return c.json({ success: true, data: booking }, 201);
+  } catch (err) {
+    if (err.message === 'SLOT_CONFLICT') {
+      return c.json({
+        success: false,
+        message: 'Slot already taken, please try again',
+      }, 409);
+    }
+
+    console.error('Booking creation error:', err);
+    return c.json({ success: false, message: 'Failed to create booking' }, 500);
   }
-
-  const booking = await prisma.booking.create({
-    data: {
-      userId: user.id,
-      facilityId: data.facilityId,
-      date: data.date,
-      slots: data.slots,
-      purpose: data.purpose,
-    },
-    include: { facility: true },
-  });
-
-  return c.json({ success: true, data: booking }, 201);
 });
 
 // Admin: update booking status
