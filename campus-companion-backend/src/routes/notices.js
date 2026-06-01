@@ -263,47 +263,29 @@ router.delete('/:id', authMiddleware, adminMiddleware, async (c) => {
 // ─── GET /notices/live ────────────────────────────────────────────────────────
 // SSE endpoint — authenticated clients receive real-time notice updates
 
-const { addSubscriber, removeSubscriber } = require('../sse');
+const { streamSSE } = require('hono/streaming');
+const { registerSubscriber, removeSubscriber } = require('../sse');
 
-router.get('/live', authMiddleware, async (c) => {
-  try {
-    // Set up SSE headers
-    c.header('Content-Type', 'text/event-stream');
-    c.header('Cache-Control', 'no-cache');
-    c.header('Connection', 'keep-alive');
-    c.header('X-Accel-Buffering', 'no');
+router.get('/live', authMiddleware, (c) => {
+  return streamSSE(c, async (stream) => {
+    const clientId = registerSubscriber((message) => stream.writeSSE(message));
 
-    // Register this client as a subscriber
-    const clientId = addSubscriber(c.res);
-
-    // Send initial connection confirmation
-    c.res.write('data: {"type":"connected","message":"SSE stream established"}\n\n');
-
-    // Set up cleanup when client disconnects
-    c.req.raw.on('close', () => {
-      removeSubscriber(clientId);
-    });
-    c.req.raw.on('error', () => {
-      removeSubscriber(clientId);
+    await stream.writeSSE({
+      data: JSON.stringify({ type: 'connected', message: 'SSE stream established' }),
     });
 
-    // Keep connection alive with heartbeat (every 30 seconds)
-    const heartbeat = setInterval(() => {
-      try {
-        c.res.write(': heartbeat\n\n');
-      } catch {
-        clearInterval(heartbeat);
+    await new Promise((resolve) => {
+      const cleanup = () => {
         removeSubscriber(clientId);
+        resolve();
+      };
+      if (c.req.raw.signal) {
+        c.req.raw.signal.addEventListener('abort', cleanup, { once: true });
       }
-    }, 30000);
-
-    // Clean up interval on disconnect
-    c.req.raw.on('close', () => clearInterval(heartbeat));
-
-  } catch (err) {
-    console.error('SSE /notices/live error:', err);
-    return c.json({ success: false, message: 'SSE connection failed' }, 500);
-  }
+      c.req.raw.on?.('close', cleanup);
+      c.req.raw.on?.('error', cleanup);
+    });
+  });
 });
 
 module.exports = router;

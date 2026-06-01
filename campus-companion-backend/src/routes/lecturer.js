@@ -180,7 +180,7 @@ router.delete('/leave/:id', lecturerMiddleware, async (c) => {
     await prisma.notice.deleteMany({
       where: { id: { in: linkedNotices.map((n) => n.id) } },
     });
-    linkedNotices.forEach((n) => broadcastNoticeDeleted(n.id));
+    linkedNotices.forEach((n) => { broadcastNoticeDeleted(n.id).catch(() => {}); });
   }
 
   return c.json({ success: true, message: 'Leave cancelled' });

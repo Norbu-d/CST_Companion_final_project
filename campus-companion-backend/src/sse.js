@@ -1,90 +1,65 @@
 /**
- * SSE (Server-Sent Events) Manager for real-time notice broadcasts
- * Maintains a Map of active SSE connections and broadcasts new notices to all clients
+ * SSE manager — subscribers are writeSSE callbacks from Hono streamSSE connections.
  */
 
-// Map of connections: clientId -> response object
 const subscribers = new Map();
-
 let clientCounter = 0;
 
 /**
- * Register a new SSE subscriber
- * @param {Response} res - Hono response object
- * @returns {string} clientId - unique identifier for this connection
+ * @param {(message: { data: string }) => Promise<void>} writeSSE
+ * @returns {string} clientId
  */
-function addSubscriber(res) {
+function registerSubscriber(writeSSE) {
   const clientId = `client_${++clientCounter}_${Date.now()}`;
-  subscribers.set(clientId, res);
+  subscribers.set(clientId, writeSSE);
   console.log(`[SSE] Client connected: ${clientId} (total: ${subscribers.size})`);
   return clientId;
 }
 
-/**
- * Remove a subscriber when connection closes
- * @param {string} clientId - client identifier
- */
 function removeSubscriber(clientId) {
+  if (!subscribers.has(clientId)) return;
   subscribers.delete(clientId);
   console.log(`[SSE] Client disconnected: ${clientId} (total: ${subscribers.size})`);
 }
 
-/**
- * Broadcast a new notice to all connected clients
- * @param {Object} notice - the full notice object with sentBy and attachments
- */
-function broadcastNewNotice(notice) {
-  if (subscribers.size === 0) return; // No clients connected
+async function broadcastData(data) {
+  if (subscribers.size === 0) return;
 
-  const eventData = JSON.stringify(notice);
-  const sseMessage = `data: ${eventData}\n\n`;
+  const failures = [];
 
-  let failures = [];
-
-  subscribers.forEach((res, clientId) => {
+  for (const [clientId, writeSSE] of subscribers) {
     try {
-      // Write the SSE message to the client
-      res.write(sseMessage);
+      await writeSSE({ data });
     } catch (err) {
       console.error(`[SSE] Error sending to ${clientId}:`, err.message);
       failures.push(clientId);
     }
-  });
+  }
 
-  // Clean up failed connections
-  failures.forEach((clientId) => removeSubscriber(clientId));
-
-  console.log(`[SSE] Broadcast sent to ${subscribers.size} clients`);
+  failures.forEach(removeSubscriber);
+  if (subscribers.size > 0) {
+    console.log(`[SSE] Broadcast sent to ${subscribers.size} clients`);
+  }
 }
 
-/**
- * Broadcast notice deletion to all connected clients
- * @param {number} noticeId
- */
-function broadcastNoticeDeleted(noticeId) {
-  if (subscribers.size === 0) return;
+async function broadcastNewNotice(notice) {
+  await broadcastData(JSON.stringify(notice));
+}
 
-  const eventData = JSON.stringify({ type: 'deleted', id: noticeId });
-  const sseMessage = `data: ${eventData}\n\n`;
+async function broadcastNoticeDeleted(noticeId) {
+  await broadcastData(JSON.stringify({ type: 'deleted', id: noticeId }));
+}
 
-  const failures = [];
-
-  subscribers.forEach((res, clientId) => {
-    try {
-      res.write(sseMessage);
-    } catch (err) {
-      console.error(`[SSE] Error sending delete to ${clientId}:`, err.message);
-      failures.push(clientId);
-    }
-  });
-
-  failures.forEach((clientId) => removeSubscriber(clientId));
+/** @deprecated use registerSubscriber */
+function addSubscriber() {
+  throw new Error('addSubscriber is deprecated — use registerSubscriber with Hono streamSSE');
 }
 
 module.exports = {
-  addSubscriber,
+  registerSubscriber,
   removeSubscriber,
   broadcastNewNotice,
   broadcastNoticeDeleted,
+  addSubscriber,
   getSubscriberCount: () => subscribers.size,
 };
