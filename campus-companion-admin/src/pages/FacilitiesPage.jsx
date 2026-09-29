@@ -4,7 +4,7 @@ import { Building2, Users, MapPin, Info } from 'lucide-react'
 import api from '../api/client'
 
 const EMOJI_MAP = {
-  basketball: '🏀', library: '📚', lab: '🔬', auditorium: '🎭',
+  library: '📚', lab: '🔬', auditorium: '🎭',
   cafeteria: '🍽️', gym: '💪', conference: '🏛️', classroom: '🏫',
   megaphone: '📢', book: '📖', default: '🏢',
 }

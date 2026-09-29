@@ -32,18 +32,19 @@ export default function LoginPage() {
     <div className="login-page">
       {/* Left panel */}
       <div className="login-left">
-        <div className="login-logo">C</div>
+        <div className="login-logo"><img src="/cst-logo.png" alt="College of Science and Technology" /></div>
+        <div className="login-kicker">Royal University of Bhutan</div>
         <h1 className="login-heading">Campus<br />Companion</h1>
         <p className="login-desc">
-          Internal admin portal for CST, Rinchending.<br />
-          Manage bookings, notices, and lecturer leave from one place.
+          College of Science and Technology · Rinchending<br />
+          One place to manage campus schedules, bookings, notices, and student records.
         </p>
 
         <div style={{ marginTop: 48, display: 'flex', flexDirection: 'column', gap: 16, position: 'relative', zIndex: 1 }}>
           {[
-            { icon: '✦', text: 'Approve & reject facility bookings' },
-            { icon: '✦', text: 'Publish campus-wide notices' },
-            { icon: '✦', text: 'View lecturer leave records' },
+            { icon: '✦', text: 'Manage campus facility bookings' },
+            { icon: '✦', text: 'Import student and timetable sheets' },
+            { icon: '✦', text: 'Publish notices and view leave records' },
           ].map(({ icon, text }) => (
             <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <span style={{ color: '#F4A623', fontSize: 10 }}>{icon}</span>

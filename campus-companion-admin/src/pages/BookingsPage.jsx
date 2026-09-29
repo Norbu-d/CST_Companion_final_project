@@ -13,6 +13,12 @@ function formatSlots(slots) {
   return slots.map(s => `${7 + s}:00–${8 + s}:00`).join(', ')
 }
 
+function isFirstComeFacility(key = '') {
+  const normalized = String(key).toLowerCase().replace(/[\s-]+/g, '_')
+  return ['hall', 'conventional_hall', 'lab', 'lab1', 'lab2', 'lab3', 'lab_class'].includes(normalized)
+    || /^(lab|laboratory)_/.test(normalized)
+}
+
 export default function BookingsPage() {
   const qc = useQueryClient()
   const [statusFilter, setStatusFilter] = useState('ALL')
@@ -53,7 +59,7 @@ export default function BookingsPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Bookings</h1>
-          <div className="page-subtitle">Review and manage facility booking requests</div>
+          <div className="page-subtitle">Manage campus bookings · lecturer hall and lab bookings confirm first come, first served</div>
         </div>
       </div>
 
@@ -103,7 +109,7 @@ export default function BookingsPage() {
                 <thead>
                   <tr>
                     <th>#</th>
-                    <th>Student</th>
+                    <th>User</th>
                     <th>Facility</th>
                     <th>Date</th>
                     <th>Time Slots</th>
@@ -115,6 +121,7 @@ export default function BookingsPage() {
                 <tbody>
                   {filtered.map(b => {
                     const isUpdating = pendingVars?.id === b.id
+                    const firstCome = isFirstComeFacility(b.facility?.facilityKey)
                     return (
                       <tr key={b.id}>
                         <td className="text-muted text-sm">#{b.id}</td>
@@ -139,7 +146,9 @@ export default function BookingsPage() {
                         </td>
                         <td>{statusBadge(b.status)}</td>
                         <td>
-                          {b.status === 'PENDING' ? (
+                          {firstCome ? (
+                            <span className="text-xs text-muted">{b.status === 'APPROVED' ? 'Auto-confirmed · FCFS' : 'Legacy pending · no admin review'}</span>
+                          ) : b.status === 'PENDING' ? (
                             <div style={{ display: 'flex', gap: 6 }}>
                               <button
                                 className="btn btn-success btn-sm"

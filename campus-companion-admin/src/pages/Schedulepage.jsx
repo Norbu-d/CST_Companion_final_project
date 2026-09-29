@@ -1,9 +1,9 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Pencil, Trash2, X, Calendar,
   BookOpen, FlaskConical, GraduationCap, Wrench, UserX, ChevronDown,
-  AlertCircle, CheckCircle2,
+  AlertCircle, CheckCircle2, Upload, Download,
 } from 'lucide-react'
 import api from '../api/client'
 
@@ -32,7 +32,7 @@ const TYPE_META = {
   Workshop: { icon: Wrench,        bg: '#fffbeb', text: '#b45309', bar: '#d97706' },
 }
 
-const YEARS     = [1, 2, 3, 4]
+const YEARS     = [1, 2, 3, 4, 5]
 const SEMESTERS = [1, 2]
 
 // Default form — day is passed in dynamically when opening from a column
@@ -458,8 +458,45 @@ export default function SchedulePage() {
 
   // Toast notifications
   const [toast, setToast] = useState(null) // { message, type }
+  const importInput = useRef(null)
+  const [importFile, setImportFile] = useState(null)
+  const [importPreview, setImportPreview] = useState(null)
+  const [importBusy, setImportBusy] = useState(false)
 
   const showToast = (message, type = 'error') => setToast({ message, type })
+
+  const downloadTemplate = () => {
+    const csv = 'Department,Year,Semester,Day,Time,Subject,Room,Type,LecturerEmail\nSOFTWARE_ENGINEERING,3,2,Monday,08:00-09:50,Example subject,L01,Lecture,lecturer@cst.edu.bt\n'
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+    const link = document.createElement('a')
+    link.href = url; link.download = 'campus-companion-timetable-template.csv'; link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const previewImport = async (file) => {
+    setImportFile(file); setImportPreview(null); setImportBusy(true)
+    const form = new FormData(); form.append('file', file)
+    try {
+      const res = await api.post('/schedule/import?preview=true', form)
+      setImportPreview(res.data ?? res)
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Could not preview this timetable.')
+      setImportFile(null)
+    } finally { setImportBusy(false) }
+  }
+
+  const confirmImport = async () => {
+    if (!importFile || !importPreview?.valid?.length) return
+    setImportBusy(true)
+    const form = new FormData(); form.append('file', importFile)
+    try {
+      const res = await api.post('/schedule/import', form)
+      showToast(res.message || 'Timetable imported.', 'success')
+      qc.invalidateQueries({ queryKey: ['schedule-admin'] })
+      setImportFile(null); setImportPreview(null)
+    } catch (error) { showToast(error.response?.data?.message || 'Import failed.') }
+    finally { setImportBusy(false) }
+  }
 
   // ── Fetch schedule entries ──────────────────────────────────────────────────
   const { data: allEntries = [], isLoading } = useQuery({
@@ -517,9 +554,12 @@ export default function SchedulePage() {
           <h1 className="page-title">Schedule Management</h1>
           <div className="page-subtitle">Build timetables and assign lecturers to each class session</div>
         </div>
-        <button className="btn btn-primary" onClick={() => setModal('new')}>
-          <Plus size={15} /> Add Class
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-secondary" onClick={downloadTemplate}><Download size={15} /> Template</button>
+          <button className="btn btn-secondary" onClick={() => importInput.current?.click()}><Upload size={15} /> Import Excel</button>
+          <input ref={importInput} type="file" accept=".xlsx,.xls,.csv" hidden onChange={e => { const f = e.target.files?.[0]; if (f) previewImport(f); e.target.value = '' }} />
+          <button className="btn btn-primary" onClick={() => setModal('new')}><Plus size={15} /> Add Class</button>
+        </div>
       </div>
 
       <div className="page-body">
@@ -668,6 +708,23 @@ export default function SchedulePage() {
           </>
         )}
       </div>
+
+      {importFile && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && !importBusy && (setImportFile(null), setImportPreview(null))}>
+          <div className="modal" style={{ maxWidth: 900, maxHeight: '85vh', overflow: 'auto' }}>
+            <div className="modal-header"><h2 className="modal-title">Timetable import preview</h2><button className="btn btn-ghost btn-icon btn-sm" onClick={() => { setImportFile(null); setImportPreview(null) }}><X size={16} /></button></div>
+            <div className="modal-body">
+              {importBusy && <p>Reading timetable…</p>}
+              {importPreview && <>
+                <p>{importPreview.valid.length} valid rows · {importPreview.errors.length} issues. Valid rows replace existing timetable entries for each department, year, and semester represented.</p>
+                {!!importPreview.errors.length && <div style={{ color: 'var(--red)', marginBottom: 12 }}><strong>Rows needing correction</strong>{importPreview.errors.map((issue, i) => <div key={i}>Row {issue.row} · {issue.field}: {issue.message}</div>)}</div>}
+                <div style={{ maxHeight: 320, overflow: 'auto' }}><table className="data-table"><thead><tr><th>Dept</th><th>Year/Sem</th><th>Day</th><th>Time</th><th>Subject</th><th>Room</th><th>Lecturer</th></tr></thead><tbody>{importPreview.valid.map((row, i) => <tr key={i}><td>{row.department}</td><td>{row.year}/{row.semester}</td><td>{row.day}</td><td>{row.time}</td><td>{row.subject}</td><td>{row.room}</td><td>{row.lecturerId || 'Unassigned'}</td></tr>)}</tbody></table></div>
+              </>}
+            </div>
+            <div className="modal-footer"><button className="btn btn-ghost" disabled={importBusy} onClick={() => { setImportFile(null); setImportPreview(null) }}>Cancel</button><button className="btn btn-primary" disabled={importBusy || !importPreview?.valid?.length} onClick={confirmImport}>{importBusy ? 'Working…' : `Import ${importPreview?.valid?.length || 0} valid rows`}</button></div>
+          </div>
+        </div>
+      )}
 
       {/* ── Entry modal (add / edit) ──────────────────────────────────────── */}
       {modal && (

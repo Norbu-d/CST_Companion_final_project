@@ -2,7 +2,7 @@ import React from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, CalendarCheck, Megaphone,
-  CalendarOff, Building2, LogOut, CalendarDays
+  CalendarOff, Building2, LogOut, CalendarDays, Users
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
@@ -10,6 +10,7 @@ const navItems = [
   { to: '/',          icon: LayoutDashboard, label: 'Dashboard',      end: true },
   { to: '/bookings',  icon: CalendarCheck,   label: 'Bookings' },
   { to: '/schedule',  icon: CalendarDays,    label: 'Schedule' },
+  { to: '/students',  icon: Users,           label: 'Students' },
   { to: '/notices',   icon: Megaphone,       label: 'Notices' },
   { to: '/leave',     icon: CalendarOff,     label: 'Lecturer Leave' },
   { to: '/facilities',icon: Building2,       label: 'Facilities' },
@@ -32,10 +33,10 @@ export default function Layout() {
       <aside className="sidebar">
         <div className="sidebar-brand">
           <div className="sidebar-brand-mark">
-            <div className="brand-icon">C</div>
+            <div className="brand-logo-wrap"><img className="brand-logo" src="/cst-logo.png" alt="College of Science and Technology" /></div>
             <div className="brand-text">
               <div className="brand-name">Campus Companion</div>
-              <div className="brand-sub">Admin Portal — CST</div>
+              <div className="brand-sub">CST · ADMIN PORTAL</div>
             </div>
           </div>
         </div>
@@ -47,6 +48,7 @@ export default function Layout() {
               key={to}
               to={to}
               end={end}
+              title={label}
               className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
             >
               <Icon className="nav-icon" />
@@ -56,14 +58,14 @@ export default function Layout() {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="user-card" onClick={handleLogout} title="Sign out">
+          <button className="user-card" onClick={handleLogout} title="Sign out">
             <div className="user-avatar">{initials}</div>
             <div className="user-info">
               <div className="user-name">{user?.name ?? 'Admin'}</div>
               <div className="user-role">Administrator</div>
             </div>
             <LogOut size={15} style={{ color: 'rgba(255,255,255,0.35)', flexShrink: 0 }} />
-          </div>
+          </button>
         </div>
       </aside>
 

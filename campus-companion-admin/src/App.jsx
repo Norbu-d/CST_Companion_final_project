@@ -9,6 +9,7 @@ import NoticesPage from './pages/NoticesPage'
 import LeavePage from './pages/LeavePage'
 import FacilitiesPage from './pages/FacilitiesPage'
 import SchedulePage from './pages/SchedulePage'
+import StudentsPage from './pages/StudentsPage'
 
 function ProtectedRoute({ children }) {
   const { token, isAdmin } = useAuth()
@@ -31,6 +32,7 @@ export default function App() {
           <Route index element={<DashboardPage />} />
           <Route path="bookings" element={<BookingsPage />} />
           <Route path="schedule" element={<SchedulePage />} />
+          <Route path="students" element={<StudentsPage />} />
           <Route path="notices" element={<NoticesPage />} />
           <Route path="leave" element={<LeavePage />} />
           <Route path="facilities" element={<FacilitiesPage />} />
